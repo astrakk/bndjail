@@ -24,6 +24,9 @@ public void OnPluginStart() {
      for (int i = 0; i < MaxClients; i++) {
           HookPlayerDamage(i);
      }
+
+     // Public commands
+     RegConsoleCmd("sm_w", Command_WardenVolunteer, "Volunteer to become the warden when on blue team");
 }
 
 
@@ -31,6 +34,20 @@ public void OnPluginStart() {
 
 public void OnClientPutInServer(int client) {
      HookPlayerDamage(client);
+}
+
+
+/** ===========[ COMMANDS ]========== **/
+
+public Action Command_WardenVolunteer(int client, int args) {
+     // Check that client is on blue
+     if (TF2_GetClientTeam(client) == TFTeam_Blue) {
+
+          // Check that there are no other wardens
+          if (GetWarden() != -1) {
+               SetPlayerWarden(client);
+          }
+     }
 }
 
 
@@ -122,6 +139,11 @@ public void RemovePlayerFreeday(int client) {
 }
 
 // Get role functions
+
+public int GetWarden() {
+     return g_iWarden;
+}
+
 public bool IsPlayerWarden(int client) {
      if (client == g_iWarden) {
           return true;
