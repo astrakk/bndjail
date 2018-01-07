@@ -118,7 +118,7 @@ public void ClearPlayerColour(int client) {
 }
 
 public void SetPlayerColour(int client, int red, int green, int blue, int opacity) {
-     if (IsValidClient(false, true, false)) {
+     if (IsValidClient(client, false, true, false)) {
           SetEntityRenderColor(client, red, green, blue, opacity);
      }
 }
