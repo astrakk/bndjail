@@ -5,6 +5,7 @@
 int g_iWarden = -1;
 bool g_bIsRebel[MAXPLAYERS+1] = false;
 bool g_bIsFreeday[MAXPLAYERS+1] = false;
+bool g_bIsWardenLocked = true;
 
 public Plugin myinfo = {
      name = "[TF2] TF2Jail Boundary",
@@ -19,7 +20,8 @@ public Plugin myinfo = {
 
 public void OnPluginStart() {
      // Events
-     HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_Pre);
+     HookEvent("arena_round_start", Event_RoundStart, EventHookMode_Pre);
+     HookEvent("teamplay_round_win", Event_RoundEnd, EventHookMode_Pre);
      HookEvent("player_connect", Event_PlayerConnection, EventHookMode_Pre);
      HookEvent("player_disconnect", Event_PlayerConnection, EventHookMode_Pre);
      HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
@@ -31,7 +33,9 @@ public void OnPluginStart() {
 
      // Public commands
      RegConsoleCmd("sm_w", Command_WardenVolunteer, "Volunteer to become the warden when on blue team");
+     RegConsoleCmd("sm_warden", Command_WardenVolunteer, "Volunteer to become the warden when on blue team");
      RegConsoleCmd("sm_uw", Command_WardenRetire, "Retire as warden to become a regular guard");
+     RegConsoleCmd("sm_unwarden", Command_WardenRetire, "Retire as warden to become a regular guard");
 }
 
 public void OnClientPutInServer(int client) {
@@ -52,9 +56,12 @@ public Action Command_WardenVolunteer(int client, int args) {
      if (IsValidClient(client, false, true, false)) {
           // Check that client is on blue
           if (TF2_GetClientTeam(client) == TFTeam_Blue) {
-               // Check that there are no other wardens
-               if (GetWarden() == -1) {
-                    SetPlayerWarden(client);
+               // Check that warden isn't locked
+               if (!IsWardenLocked()) {
+                    // Check that there are no other wardens
+                    if (GetWarden() == -1) {
+                         SetPlayerWarden(client);
+                    }
                }
           }
      }
@@ -79,7 +86,11 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
      ClearWarden();
      ClearRebels();
      ClearFreedays();
-     
+     UnlockWarden();
+}
+
+public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast) {
+     LockWarden();
 }
 
 public Action Event_PlayerConnection(Event event, const char[] name, bool dontBroadcast) {
@@ -116,6 +127,19 @@ public Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float
 
 
 /** ===========[ FUNCTIONS ]=========== **/
+
+// Warden functions
+public void LockWarden() {
+     g_bIsWardenLocked = true;
+}
+
+public void UnlockWarden() {
+     g_bIsWardenLocked = false;
+}
+
+public bool IsWardenLocked() {
+     return g_bIsWardenLocked;
+}
 
 // Colour functions
 
