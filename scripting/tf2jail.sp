@@ -14,6 +14,9 @@ public Plugin myinfo = {
      url = "https://github.com/astrakk/"
 };
 
+
+/** ===========[ FORWARDS ]========== **/
+
 public void OnPluginStart() {
      // Events
      HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_Pre);
@@ -31,11 +34,14 @@ public void OnPluginStart() {
      RegConsoleCmd("sm_uw", Command_WardenRetire, "Retire as warden to become a regular guard");
 }
 
-
-/** ===========[ FORWARDS ]========== **/
-
 public void OnClientPutInServer(int client) {
      HookPlayerDamage(client);
+}
+
+public void OnEntityCreated(int entity, const char[] classname) {
+     if (StrEqual(classname, "tf_dropped_weapon") || StrEqual(classname, "tf_ammo_pack")) {
+          AcceptEntityInput(entity, "kill");
+     }
 }
 
 
