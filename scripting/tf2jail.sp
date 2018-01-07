@@ -144,7 +144,7 @@ public void ClearPlayerWeapons(int client) {
                RemovePlayerWeapon(client, 1);
           }
           case TFClass_Heavy: {
-               RemovePlayerWeapon(client, 0);
+               RemovePlayerAmmo(client, 0);
                RemovePlayerWeapon(client, 1);
           }
           case TFClass_Engineer: {
@@ -155,7 +155,7 @@ public void ClearPlayerWeapons(int client) {
                RemovePlayerWeapon(client, 0);
           }
           case TFClass_Sniper: {
-               RemovePlayerWeapon(client, 0);
+               RemovePlayerAmmo(client, 0);
                RemovePlayerWeapon(client, 1);
           }
           case TFClass_Spy: {
@@ -165,13 +165,26 @@ public void ClearPlayerWeapons(int client) {
 }
 
 public void RemovePlayerWeapon(int client, int slot) {
+     RemovePlayerClip(client, slot);
+     RemovePlayerAmmo(client, slot);
+}
+
+public void RemovePlayerClip(int client, int slot) {
+     int iWeapon = GetPlayerWeaponSlot(client, slot);
+
+     // Check that the slot actually contains a weapon before proceeding
+     if (IsValidEntity(iWeapon)) {
+          SetEntProp(iWeapon, Prop_Send, "m_iClip1", 0);
+     }
+}
+
+public void RemovePlayerAmmo(int client, int slot) {
      int iWeapon = GetPlayerWeaponSlot(client, slot);
 
      // Check that the slot actually contains a weapon before proceeding
      if (IsValidEntity(iWeapon)) {
           int iAmmoType = GetEntProp(iWeapon, Prop_Send, "m_iPrimaryAmmoType");
           SetEntProp(client, Prop_Data, "m_iAmmo", 0, _, iAmmoType);
-          SetEntProp(iWeapon, Prop_Send, "m_iClip1", 0);
      }
 }
 
