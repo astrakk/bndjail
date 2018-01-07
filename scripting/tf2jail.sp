@@ -25,6 +25,7 @@ public void OnPluginStart() {
      HookEvent("player_connect", Event_PlayerConnection, EventHookMode_Pre);
      HookEvent("player_disconnect", Event_PlayerConnection, EventHookMode_Pre);
      HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
+     HookEvent("post_inventory_application", Event_PlayerSpawn, EventHookMode_Post);
 
      // Hook all player damage
      for (int i = 0; i < MaxClients; i++) {
@@ -83,13 +84,13 @@ public Action Command_WardenRetire(int client, int args) {
 /** ===========[ EVENTS ]=========== **/
 
 public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast) {
-     ClearWarden();
-     ClearRebels();
-     ClearFreedays();
      UnlockWarden();
 }
 
 public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast) {
+     ClearWarden();
+     ClearRebels();
+     ClearFreedays();
      LockWarden();
 }
 
