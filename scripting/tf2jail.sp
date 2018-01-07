@@ -60,13 +60,13 @@ public Action Command_WardenVolunteer(int client, int args) {
      }
 
      // Check that client is on blue
-     if (TF2_GetClientTeam(client) == TFTeam_Blue) {
+     if (TF2_GetClientTeam(client) != TFTeam_Blue) {
           PrintToChat(client, "[JAIL] Error: must be on blue team to become warden");
           return Plugin_Handled;
      }
 
      // Check that warden isn't locked
-     if (!IsWardenLocked()) {
+     if (IsWardenLocked()) {
           PrintToChat(client, "[JAIL] Error: warden is locked");
           return Plugin_Handled;
      }
@@ -85,7 +85,7 @@ public Action Command_WardenVolunteer(int client, int args) {
 public Action Command_WardenRetire(int client, int args) {
      // Check that the player is currently warden
      if (!IsPlayerWarden(client)) {
-          PrintToChat(client, "[JAIL] Error: you are not currently warden");a
+          PrintToChat(client, "[JAIL] Error: you are not currently warden");
           return Plugin_Handled;
      }
 
