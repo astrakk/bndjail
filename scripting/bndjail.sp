@@ -8,7 +8,7 @@ bool g_bIsFreeday[MAXPLAYERS+1] = false;
 bool g_bIsWardenLocked = true;
 
 public Plugin myinfo = {
-     name = "[TF2] TF2Jail Boundary",
+     name = "[TF2] BND Jailbreak",
      author = "Astrak",
      description = "Custom TF2Jail plugin for Boudnary Servers",
      version = "1.0",
