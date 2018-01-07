@@ -19,7 +19,7 @@ public void OnPluginStart() {
      HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_Pre);
      HookEvent("player_connect", Event_PlayerConnection, EventHookMode_Pre);
      HookEvent("player_disconnect", Event_PlayerConnection, EventHookMode_Pre);
-     HookEvent("player_spawn", Event_PlayerConnection, EventHookMode_Post);
+     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 
      // Hook all player damage
      for (int i = 0; i < MaxClients; i++) {
@@ -64,6 +64,7 @@ public Action Command_WardenRetire(int client, int args) {
                RemovePlayerWarden(client);
           }
      }
+}
 
 
 /** ===========[ EVENTS ]=========== **/
@@ -86,7 +87,7 @@ public Action Event_PlayerConnection(Event event, const char[] name, bool dontBr
 public Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
      int client = GetClientOfUserId(event.GetInt("userid"));
 
-     if (TF2_GetPlayerTeam(client) == TFTeam_Red) {
+     if (TF2_GetClientTeam(client) == TFTeam_Red) {
           ClearPlayerWeapons(client);
      }
 }
@@ -117,7 +118,9 @@ public void ClearPlayerColour(int client) {
 }
 
 public void SetPlayerColour(int client, int red, int green, int blue, int opacity) {
-     SetEntityRenderColor(client, red, green, blue, opacity);
+     if (IsValidClient(false, true, false)) {
+          SetEntityRenderColor(client, red, green, blue, opacity);
+     }
 }
 
 // Weapon functions
@@ -165,7 +168,7 @@ public void RemovePlayerWeapon(int client, int slot) {
      int iWeapon = GetPlayerWeaponSlot(client, slot);
 
      // Check that the slot actually contains a weapon before proceeding
-     if (IsValidEntity(weapon)) {
+     if (IsValidEntity(iWeapon)) {
           int iAmmoType = GetEntProp(iWeapon, Prop_Send, "m_iPrimaryAmmoType");
           SetEntProp(client, Prop_Data, "m_iAmmo", 0, _, iAmmoType);
           SetEntProp(iWeapon, Prop_Send, "m_iClip1", 0);
