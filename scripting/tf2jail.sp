@@ -54,30 +54,44 @@ public void OnEntityCreated(int entity, const char[] classname) {
 
 public Action Command_WardenVolunteer(int client, int args) {
      // Check that the client is alive and not a bot
-     if (IsValidClient(client, false, true, false)) {
-          // Check that client is on blue
-          if (TF2_GetClientTeam(client) == TFTeam_Blue) {
-               // Check that warden isn't locked
-               if (!IsWardenLocked()) {
-                    // Check that there are no other wardens
-                    if (GetWarden() == -1) {
-                         SetPlayerWarden(client);
-                    }
-               }
-          }
+     if (!IsValidClient(client, false, true, false)) {
+          PrintToChat(client, "[JAIL] Error: must be alive to become warden");
+          return Plugin_Handled;
      }
+
+     // Check that client is on blue
+     if (TF2_GetClientTeam(client) == TFTeam_Blue) {
+          PrintToChat(client, "[JAIL] Error: must be on blue team to become warden");
+          return Plugin_Handled;
+     }
+
+     // Check that warden isn't locked
+     if (!IsWardenLocked()) {
+          PrintToChat(client, "[JAIL] Error: warden is locked");
+          return Plugin_Handled;
+     }
+
+     // Check that there are no other wardens
+     if (GetWarden() != -1) {
+          PrintToChat(client, "[JAIL] Error: someone is already a warden");
+          return Plugin_Handled;
+     }
+     
+     SetPlayerWarden(client);
 
      return Plugin_Handled;
 }
 
 public Action Command_WardenRetire(int client, int args) {
-     // Check that the client is alive and not a bot
-     if (IsValidClient(client, false, true, false)) {
-          // Check that the player is currently warden
-          if (IsPlayerWarden(client)) {
-               RemovePlayerWarden(client);
-          }
+     // Check that the player is currently warden
+     if (!IsPlayerWarden(client)) {
+          PrintToChat(client, "[JAIL] Error: you are not currently warden");a
+          return Plugin_Handled;
      }
+
+     RemovePlayerWarden(client);
+
+     return Plugin_Handled;
 }
 
 
