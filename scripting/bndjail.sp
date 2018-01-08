@@ -165,6 +165,11 @@ public Action Command_WardenRetire(int client, int args) {
 }
 
 public Action Command_GiveLastRequest(int client, int args) {
+     // Client not warden
+     if (!IsPlayerWarden(client)) {
+          return Plugin_Handled;
+     }
+
      Menu_GiveLastRequest(client);
 }
 
@@ -373,11 +378,6 @@ public Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float
 
 // Give last request menu
 public Action Menu_GiveLastRequest(int client) {
-     // Client not warden
-     if (!IsPlayerWarden(client)) {
-          return Plugin_Handled;
-     }
-
      // Create the menu and set the title
      Menu menu = new Menu(Handler_GiveLastRequest, MenuAction_Select);
      SetMenuTitle(menu, "Who should receive LR?");
