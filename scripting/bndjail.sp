@@ -45,6 +45,9 @@ public void OnPluginStart() {
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+     // Dependency
+     RegPluginLibrary("bndjail");
+
      // Natives
      CreateNative("BNDJail_IsWardenActive", Native_IsWardenActive);
      CreateNative("BNDJail_GetWarden", Native_GetWarden);

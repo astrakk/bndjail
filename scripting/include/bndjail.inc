@@ -102,3 +102,41 @@ native void BNDJail_RemovePlayerFreeday(int client);
  * Removes all freeday statuses from players
  */
 native void BNDJail_ClearFreedays();
+
+
+/** ==========[ DEPENDENCY ]========== **/
+
+#if !defined REQUIRE_PLUGIN
+public void __pl_bndjail_SetNTVOptional() {
+     MarkNativeAsOptional("BNDJail_IsWardenActive");
+     MarkNativeAsOptional("BNDJail_GetWarden");
+     MarkNativeAsOptional("BNDJail_IsPlayerWarden");
+     MarkNativeAsOptional("BNDJail_SetPlayerWarden");
+     MarkNativeAsOptional("BNDJail_RemovePlayerWarden");
+     MarkNativeAsOptional("BNDJail_ClearWarden");
+
+     MarkNativeAsOptional("BNDJail_IsPlayerRebel");
+     MarkNativeAsOptional("BNDJail_SetPlayerRebel");
+     MarkNativeAsOptional("BNDJail_RemovePlayerRebel");
+     MarkNativeAsOptional("BNDJail_ClearRebels");
+
+     MarkNativeAsOptional("BNDJail_IsPlayerFreeday");
+     MarkNativeAsOptional("BNDJail_SetPlayerFreeday");
+     MarkNativeAsOptional("BNDJail_RemovePlayerFreeday");
+     MarkNativeAsOptional("BNDJail_ClearFreedays");
+
+     MarkNativeAsOptional("BNDJail_IsWardenLocked");
+     MarkNativeAsOptional("BNDJail_LockWarden");
+     MarkNativeAsOptional("BNDJail_UnlockWarden");
+}
+#endif
+
+public SharedPlugin __pl_bndjail = {
+     name = "bndjail",
+     file = "bndjail.smx",
+#if defined REQUIRE_PLUGIN
+     required = 1,
+#else
+     required = 0,
+#endif
+};
