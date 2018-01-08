@@ -1,6 +1,7 @@
 #include <sourcemod>
 #include <tf2_stocks>
 #include <sdkhooks>
+#include <bndjail>
 
 #pragma semicolon 1
 #pragma newdecls required
