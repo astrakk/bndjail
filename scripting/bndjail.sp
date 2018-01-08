@@ -2,6 +2,9 @@
 #include <tf2_stocks>
 #include <sdkhooks>
 
+#pragma semicolon 1
+#pragma newdecls required
+
 int g_iWarden = -1;
 bool g_bIsRebel[MAXPLAYERS+1] = false;
 bool g_bIsFreeday[MAXPLAYERS+1] = false;
@@ -39,6 +42,33 @@ public void OnPluginStart() {
      RegConsoleCmd("sm_unwarden", Command_WardenRetire, "Retire as warden to become a regular guard");
 }
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+     // Natives
+     CreateNative("BNDJail_IsWardenActive", Native_IsWardenActive);
+     CreateNative("BNDJail_GetWarden", Native_GetWarden);
+     CreateNative("BNDJail_IsPlayerWarden", Native_IsPlayerWarden);
+     CreateNative("BNDJail_SetPlayerWarden", Native_SetPlayerWarden);
+     CreateNative("BNDJail_RemovePlayerWarden", Native_RemovePlayerWarden);
+     CreateNative("BNDJail_ClearWarden", Native_ClearWarden);
+
+     CreateNative("BNDJail_IsPlayerRebel", Native_IsPlayerRebel);
+     CreateNative("BNDJail_SetPlayerRebel", Native_SetPlayerRebel);
+     CreateNative("BNDJail_RemovePlayerRebel", Native_RemovePlayerRebel);
+     CreateNative("BNDJail_ClearRebels", Native_ClearRebels);
+
+     CreateNative("BNDJail_IsPlayerFreeday", Native_IsPlayerFreeday);
+     CreateNative("BNDJail_SetPlayerFreeday", Native_SetPlayerFreeday);
+     CreateNative("BNDJail_RemovePlayerFreeday", Native_RemovePlayerFreeday);
+     CreateNative("BNDJail_ClearFreedays", Native_ClearFreedays);
+
+     CreateNative("BNDJail_IsWardenLocked", Native_IsWardenLocked);
+     CreateNative("BNDJail_LockWarden", Native_LockWarden);
+     CreateNative("BNDJail_UnlockWarden", Native_UnlockWarden);
+
+     return APLRes_Success;
+}
+
 public void OnClientPutInServer(int client) {
      HookPlayerDamage(client);
 }
@@ -72,7 +102,7 @@ public Action Command_WardenVolunteer(int client, int args) {
      }
 
      // Check that there are no other wardens
-     if (GetWarden() != -1) {
+     if (IsWardenActive()) {
           PrintToChat(client, "[JAIL] Error: someone is already a warden");
           return Plugin_Handled;
      }
@@ -266,7 +296,7 @@ public void RemovePlayerAmmo(int client, int slot) {
      }
 }
 
-public void HookPlayerDamage(client) {
+public void HookPlayerDamage(int client) {
      if (IsValidClient(client)) {
           SDKHook(client, SDKHook_OnTakeDamage, Hook_OnTakeDamage);
      }
@@ -294,7 +324,7 @@ public void SetPlayerWarden(int client) {
      g_iWarden = client;
      
      // Only set the player colour if warden is not unset
-     if (GetWarden() != -1) {
+     if (IsWardenActive()) {
           SetPlayerColour(client, 0, 0, 255, 255);
      }
 }
@@ -329,6 +359,14 @@ public void RemovePlayerFreeday(int client) {
 
 // Get role functions
 
+public bool IsWardenActive() {
+     if (GetWarden() != -1) {
+          return true;
+     }
+
+     return false;
+}
+
 public int GetWarden() {
      return g_iWarden;
 }
@@ -358,4 +396,96 @@ bool IsValidClient(int client, bool bAllowDead = true, bool bAllowAlive = true, 
                return false;
      }
      return true;   
+}
+
+
+/** ==========[ NATIVES ]========== **/
+
+public int Native_IsWardenActive(Handle plugin, int numParams) {
+     return IsWardenActive();
+}
+
+public int Native_GetWarden(Handle plugin, int numParams) {
+     return GetWarden();
+}
+
+public int Native_IsPlayerWarden(Handle plugin, int numParams) {
+     int client = GetNativeCell(1);
+
+     return IsPlayerWarden(client);
+}
+
+public int Native_SetPlayerWarden(Handle plugin, int numParams) {
+     int client = GetNativeCell(1);
+
+     SetPlayerWarden(client);
+}
+
+public int Native_RemovePlayerWarden(Handle plugin, int numParams) {
+     int client = GetNativeCell(1);
+
+     RemovePlayerWarden(client);
+}
+
+public int Native_ClearWarden(Handle plugin, int numParams) {
+     ClearWarden();
+}
+
+
+public int Native_IsPlayerRebel(Handle plugin, int numParams) {
+     int client = GetNativeCell(1);
+
+     return IsPlayerRebel(client);
+}
+
+public int Native_SetPlayerRebel(Handle plugin, int numParams) {
+     int client = GetNativeCell(1);
+
+     SetPlayerRebel(client);
+}
+
+public int Native_RemovePlayerRebel(Handle plugin, int numParams) {
+     int client = GetNativeCell(1);
+
+     RemovePlayerRebel(client);
+}
+
+public int Native_ClearRebels(Handle plugin, int numParams) {
+     ClearRebels();
+}
+
+
+public int Native_IsPlayerFreeday(Handle plugin, int numParams) {
+     int client = GetNativeCell(1);
+
+     return IsPlayerFreeday(client);
+}
+
+public int Native_SetPlayerFreeday(Handle plugin, int numParams) {
+     int client = GetNativeCell(1);
+
+     SetPlayerFreeday(client);
+}
+
+public int Native_RemovePlayerFreeday(Handle plugin, int numParams) {
+     int client = GetNativeCell(1);
+
+     RemovePlayerFreeday(client);
+}
+
+public int Native_ClearFreedays(Handle plugin, int numParams) {
+     ClearFreedays();
+}
+
+
+public int Native_IsWardenLocked(Handle plugin, int numParams) {
+     return IsWardenLocked();
+}
+
+public int Native_LockWarden(Handle plugin, int numParams) {
+     LockWarden();
+}
+
+public int Native_UnlockWarden(Handle plugin, int numParams) {
+     UnlockWarden();
 }
