@@ -40,6 +40,7 @@ public void OnPluginStart() {
      HookEvent("player_connect", Event_PlayerConnection, EventHookMode_Pre);
      HookEvent("player_disconnect", Event_PlayerConnection, EventHookMode_Pre);
      HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
+     HookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
      HookEvent("post_inventory_application", Event_PlayerSpawn, EventHookMode_Post);
 
      // Hook all player damage
@@ -52,6 +53,15 @@ public void OnPluginStart() {
      RegConsoleCmd("sm_warden", Command_WardenVolunteer, "Volunteer to become the warden when on blue team");
      RegConsoleCmd("sm_uw", Command_WardenRetire, "Retire as warden to become a regular guard");
      RegConsoleCmd("sm_unwarden", Command_WardenRetire, "Retire as warden to become a regular guard");
+
+     // Admin commands
+     RegConsoleCmd("sm_forcewarden", Admin_ForceWarden, "Force a player to be warden if they are on blue");
+     RegConsoleCmd("sm_removewarden", Admin_RemoveWarden, "Force the current warden to retire");
+     RegConsoleCmd("sm_forcefreeday", Admin_ForceFreeday, "Force a player to become a freeday");
+     RegConsoleCmd("sm_removefreeday", Admin_RemoveFreeday, "Force a player to lose their freeday status");
+
+     // Translations
+     LoadTranslations("common.phrases");
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -111,8 +121,8 @@ public void OnEntityCreated(int entity, const char[] classname) {
 /** ===========[ COMMANDS ]========== **/
 
 public Action Command_WardenVolunteer(int client, int args) {
-     // Check that the client is alive and not a bot
-     if (!IsValidClient(client, false, true, false)) {
+     // Check that the client is alive
+     if (!IsValidClient(client, false, true, true)) {
           PrintToChat(client, "[JAIL] Error: must be alive to become warden");
           return Plugin_Handled;
      }
@@ -153,6 +163,134 @@ public Action Command_WardenRetire(int client, int args) {
 }
 
 
+public Action Admin_ForceWarden(int client, int args) {
+     // Check that there is at least 1 argument
+     if (args < 1) {
+          return Plugin_Handled;
+     }
+
+     // Retrieve the target name
+     char arg[MAX_NAME_LENGTH];
+     GetCmdArgString(arg, sizeof(arg));
+
+     // Find the target
+     int target = FindTarget(client, arg);
+
+     // Target not found
+     if (target == -1) {
+          return Plugin_Handled;
+     }
+
+     // Target not alive
+     if (!IsValidClient(target, false, true, true)) {
+          return Plugin_Handled;
+     }
+
+     // Target not on blue team
+     if (TF2_GetClientTeam(target) != TFTeam_Blue) {
+          return Plugin_Handled;
+     }
+
+     // Target is already warden
+     if (IsPlayerWarden(target)) {
+          return Plugin_Handled;
+     }
+
+     SetPlayerWarden(target);
+     return Plugin_Handled;
+}
+
+public Action Admin_RemoveWarden(int client, int args) {
+     // Check that there is at least 1 argument
+     if (args < 1) {
+          return Plugin_Handled;
+     }
+
+     // Retrieve the target name
+     char arg[MAX_NAME_LENGTH];
+     GetCmdArgString(arg, sizeof(arg));
+
+     // Find the target
+     int target = FindTarget(client, arg);
+
+     // Target not found
+     if (target == -1) {
+          return Plugin_Handled;
+     }
+
+     // Target not warden
+     if (!IsPlayerWarden(target)) {
+          return Plugin_Handled;
+     }
+
+     RemovePlayerWarden(target);
+     return Plugin_Handled;
+}
+
+public Action Admin_ForceFreeday(int client, int args) {
+     // Check that there is at least 1 argument
+     if (args < 1) {
+          return Plugin_Handled;
+     }
+
+     // Retrieve the target name
+     char arg[MAX_NAME_LENGTH];
+     GetCmdArgString(arg, sizeof(arg));
+
+     // Find the target
+     int target = FindTarget(client, arg);
+
+     // Target not found
+     if (target == -1) {
+          return Plugin_Handled;
+     }
+
+     // Target not alive
+     if (!IsValidClient(target, false, true, true)) {
+          return Plugin_Handled;
+     }
+
+     // Target not on red team
+     if (TF2_GetClientTeam(target) != TFTeam_Red) {
+          return Plugin_Handled;
+     }
+
+     // Target already freeday
+     if (IsPlayerFreeday(target)) {
+          return Plugin_Handled;
+     }
+
+     SetPlayerFreeday(target);
+     return Plugin_Handled;
+}
+
+public Action Admin_RemoveFreeday(int client, int args) {
+     // Check that there is at least 1 argument
+     if (args < 1) {
+          return Plugin_Handled;
+     }
+
+     // Retrieve the target name
+     char arg[MAX_NAME_LENGTH];
+     GetCmdArgString(arg, sizeof(arg));
+
+     // Find the target
+     int target = FindTarget(client, arg);
+
+     // Target not found
+     if (target == -1) {
+          return Plugin_Handled;
+     }
+
+     // Target not freeday
+     if (!IsPlayerFreeday(target)) {
+          return Plugin_Handled;
+     }
+
+     RemovePlayerFreeday(target);
+     return Plugin_Handled;
+}
+
 /** ===========[ EVENTS ]=========== **/
 
 public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast) {
@@ -183,20 +321,39 @@ public Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadca
      }
 }
 
+public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast) {
+     int client = GetClientOfUserId(event.GetInt("userid"));
+
+     RemovePlayerWarden(client);
+     RemovePlayerRebel(client);
+     RemovePlayerFreeday(client);
+}
+
 
 /** ===========[ HOOKS ]========== **/
 
 public Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom) {
-     // Check that the player is alive and not a bot
-     if (IsValidClient(attacker, false, true, false)) {
-          // Check that the attacker is on red and the victim is on blue
+     // Check that the player is alive (ensures world damage doesn't count)
+     if (IsValidClient(attacker, false, true, true)) {
+          // If the victim is a freeday and the attacker isn't the warden, block damage
+          if (IsPlayerFreeday(victim) && !IsPlayerWarden(attacker)) {
+               return Plugin_Handled;
+          }
+
+          // If the attacker is a freeday, remove their freeday status
+          if (IsPlayerFreeday(attacker)) {
+               RemovePlayerFreeday(attacker);
+          }
+
+          // If the attacker is a red non-rebel and the victim is on blue, mark the red as a rebel
           if (TF2_GetClientTeam(attacker) == TFTeam_Red && TF2_GetClientTeam(victim) == TFTeam_Blue) {
-               // Check that the player isn't already a rebel before making them one
                if (!IsPlayerRebel(attacker)) {
                     SetPlayerRebel(attacker);
                }
           }
      }
+
+     return Plugin_Continue;
 }     
 
 
@@ -259,7 +416,7 @@ public void ClearPlayerColour(int client) {
 }
 
 public void SetPlayerColour(int client, int red, int green, int blue, int opacity) {
-     if (IsValidClient(client, false, true, false)) {
+     if (IsValidClient(client, false, true, true)) {
           SetEntityRenderColor(client, red, green, blue, opacity);
      }
 }
