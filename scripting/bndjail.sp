@@ -55,10 +55,10 @@ public void OnPluginStart() {
      RegConsoleCmd("sm_unwarden", Command_WardenRetire, "Retire as warden to become a regular guard");
 
      // Admin commands
-     RegConsoleCmd("sm_forcewarden", Admin_ForceWarden, "Force a player to be warden if they are on blue");
-     RegConsoleCmd("sm_removewarden", Admin_RemoveWarden, "Force the current warden to retire");
-     RegConsoleCmd("sm_forcefreeday", Admin_ForceFreeday, "Force a player to become a freeday");
-     RegConsoleCmd("sm_removefreeday", Admin_RemoveFreeday, "Force a player to lose their freeday status");
+     RegAdminCmd("sm_forcewarden", Admin_ForceWarden, 6, "Force a player to be warden if they are on blue");
+     RegAdminCmd("sm_removewarden", Admin_RemoveWarden, 6, "Force the current warden to retire");
+     RegAdminCmd("sm_forcefreeday", Admin_ForceFreeday, 6, "Force a player to become a freeday");
+     RegAdminCmd("sm_removefreeday", Admin_RemoveFreeday, 6, "Force a player to lose their freeday status");
 
      // Translations
      LoadTranslations("common.phrases");
