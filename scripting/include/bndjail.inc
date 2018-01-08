@@ -104,6 +104,52 @@ native void BNDJail_RemovePlayerFreeday(int client);
 native void BNDJail_ClearFreedays();
 
 
+/** ==========[ FORWARDS ]========== **/
+
+/**
+ * Called when a player is set to be warden
+ */
+forward void BNDJail_OnSetPlayerWarden(int client);
+
+/**
+ * Called when a player is removed as warden
+ */
+forward void BNDJail_OnRemovePlayerWarden(int client);
+
+
+/**
+ * Called when a player is set as a rebel
+ */
+forward void BNDJail_OnSetPlayerRebel(int client);
+
+/**
+ * Called when a player loses their rebel status
+ */
+forward void BNDJail_OnRemovePlayerRebel(int client);
+
+
+/**
+ * Called when a player is set as a freeday
+ */
+forward void BNDJail_OnSetPlayerFreeday(int client);
+
+/**
+ * Called when a player loses their freeday status
+ */
+forward void BNDJail_OnRemovePlayerFreeday(int client);
+
+
+/**
+ * Called when warden is locked
+ */
+forward void BNDJail_OnWardenLocked();
+
+/**
+ * Called when warden is unlocked
+ */
+forward void BNDJail_OnWardenUnlocked();
+
+
 /** ==========[ DEPENDENCY ]========== **/
 
 #if !defined REQUIRE_PLUGIN

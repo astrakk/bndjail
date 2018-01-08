@@ -6,10 +6,21 @@
 #pragma semicolon 1
 #pragma newdecls required
 
+// Global variables and arrays
 int g_iWarden = -1;
 bool g_bIsRebel[MAXPLAYERS+1] = false;
 bool g_bIsFreeday[MAXPLAYERS+1] = false;
 bool g_bIsWardenLocked = true;
+
+// Forward handles
+Handle g_hOnSetPlayerWarden;
+Handle g_hOnRemovePlayerWarden;
+Handle g_hOnSetPlayerRebel;
+Handle g_hOnRemovePlayerRebel;
+Handle g_hOnSetPlayerFreeday;
+Handle g_hOnRemovePlayerFreeday;
+Handle g_hOnWardenLocked;
+Handle g_hOnWardenUnlocked;
 
 public Plugin myinfo = {
      name = "[TF2] BND Jailbreak",
@@ -69,6 +80,19 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
      CreateNative("BNDJail_IsWardenLocked", Native_IsWardenLocked);
      CreateNative("BNDJail_LockWarden", Native_LockWarden);
      CreateNative("BNDJail_UnlockWarden", Native_UnlockWarden);
+
+     // Forwards
+     g_hOnSetPlayerWarden = CreateGlobalForward("BNDJail_OnSetPlayerWarden", ET_Event, Param_Cell);
+     g_hOnRemovePlayerWarden = CreateGlobalForward("BNDJail_OnRemovePlayerWarden", ET_Event, Param_Cell);
+
+     g_hOnSetPlayerRebel = CreateGlobalForward("BNDJail_OnSetPlayerRebel", ET_Event, Param_Cell);
+     g_hOnRemovePlayerRebel = CreateGlobalForward("BNDJail_OnRemovePlayerRebel", ET_Event, Param_Cell);
+
+     g_hOnSetPlayerFreeday = CreateGlobalForward("BNDJail_OnSetPlayerFreeday", ET_Event, Param_Cell);
+     g_hOnRemovePlayerFreeday = CreateGlobalForward("BNDJail_OnRemovePlayerFreeday", ET_Event, Param_Cell);
+
+     g_hOnWardenLocked = CreateGlobalForward("BNDJail_OnWardenLocked", ET_Event, Param_Cell);
+     g_hOnWardenUnlocked = CreateGlobalForward("BNDJail_OnWardenUnlocked", ET_Event, Param_Cell);
 
      return APLRes_Success;
 }
@@ -213,10 +237,16 @@ public int GetTeamPlayerCount(TFTeam tfteam) {
 // Warden functions
 public void LockWarden() {
      g_bIsWardenLocked = true;
+
+     Call_StartForward(g_hOnWardenLocked);
+     Call_Finish();
 }
 
 public void UnlockWarden() {
      g_bIsWardenLocked = false;
+
+     Call_StartForward(g_hOnWardenUnlocked);
+     Call_Finish();
 }
 
 public bool IsWardenLocked() {
@@ -308,7 +338,7 @@ public void HookPlayerDamage(int client) {
 
 // Clear role functions
 public void ClearWarden() {
-     SetPlayerWarden(-1);
+     RemovePlayerWarden(GetWarden());
 }
 
 public void ClearRebels() {
@@ -331,16 +361,28 @@ public void SetPlayerWarden(int client) {
      if (IsWardenActive()) {
           SetPlayerColour(client, 0, 0, 255, 255);
      }
+
+     Call_StartForward(g_hOnSetPlayerWarden);
+     Call_PushCell(client);
+     Call_Finish();
 }
 
 public void SetPlayerRebel(int client) {
      g_bIsRebel[client] = true;
      SetPlayerColour(client, 0, 255, 0, 255);
+
+     Call_StartForward(g_hOnSetPlayerRebel);
+     Call_PushCell(client);
+     Call_Finish();
 }
 
 public void SetPlayerFreeday(int client) {
      g_bIsFreeday[client] = true;
      SetPlayerColour(client, 255, 0, 0, 255);
+
+     Call_StartForward(g_hOnSetPlayerFreeday);
+     Call_PushCell(client);
+     Call_Finish();
 }
 
 // Remove role functions
@@ -348,17 +390,29 @@ public void RemovePlayerWarden(int client) {
      if (IsPlayerWarden(client)) {
           SetPlayerWarden(-1);
           ClearPlayerColour(client);
+
+          Call_StartForward(g_hOnRemovePlayerWarden);
+          Call_PushCell(client);
+          Call_Finish();
      }
 }
 
 public void RemovePlayerRebel(int client) {
      g_bIsRebel[client] = false;
      ClearPlayerColour(client);
+
+     Call_StartForward(g_hOnRemovePlayerRebel);
+     Call_PushCell(client);
+     Call_Finish();
 }
      
 public void RemovePlayerFreeday(int client) {
      g_bIsFreeday[client] = false;
      ClearPlayerColour(client);
+
+     Call_StartForward(g_hOnRemovePlayerFreeday);
+     Call_PushCell(client);
+     Call_Finish();
 }
 
 // Get role functions
