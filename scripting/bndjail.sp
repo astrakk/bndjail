@@ -128,7 +128,7 @@ public Action Command_WardenVolunteer(int client, int args) {
      }
 
      // Check that client is on blue
-     if (TF2_GetClientTeam(client) != TFTeam_Blue) {
+     if (IsPlayerBlue(client)) {
           PrintToChat(client, "[JAIL] Error: must be on blue team to become warden");
           return Plugin_Handled;
      }
@@ -187,7 +187,7 @@ public Action Admin_ForceWarden(int client, int args) {
      }
 
      // Target not on blue team
-     if (TF2_GetClientTeam(target) != TFTeam_Blue) {
+     if (!IsPlayerBlue(target)) {
           return Plugin_Handled;
      }
 
@@ -251,7 +251,7 @@ public Action Admin_ForceFreeday(int client, int args) {
      }
 
      // Target not on red team
-     if (TF2_GetClientTeam(target) != TFTeam_Red) {
+     if (!IsPlayerRed(client)) {
           return Plugin_Handled;
      }
 
@@ -316,17 +316,22 @@ public Action Event_PlayerConnection(Event event, const char[] name, bool dontBr
 public Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
      int client = GetClientOfUserId(event.GetInt("userid"));
 
-     if (TF2_GetClientTeam(client) == TFTeam_Red) {
+     if (IsPlayerRed(client)) {
           ClearPlayerWeapons(client);
      }
 }
 
 public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast) {
-     int client = GetClientOfUserId(event.GetInt("userid"));
+     int victim = GetClientOfUserId(event.GetInt("userid"));
+     int attacker = GetClientOfUserId(event.GetInt("attacker"));
 
-     RemovePlayerWarden(client);
-     RemovePlayerRebel(client);
-     RemovePlayerFreeday(client);
+     if (IsPlayerRed(attacker)) {
+          SetEventBroadcast(event, true);
+     }
+
+     RemovePlayerWarden(victim);
+     RemovePlayerRebel(victim);
+     RemovePlayerFreeday(victim);
 }
 
 
@@ -346,7 +351,7 @@ public Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float
           }
 
           // If the attacker is a red non-rebel and the victim is on blue, mark the red as a rebel
-          if (TF2_GetClientTeam(attacker) == TFTeam_Red && TF2_GetClientTeam(victim) == TFTeam_Blue) {
+          if (IsPlayerRed(attacker) && IsPlayerBlue(victim)) {
                if (!IsPlayerRebel(attacker)) {
                     SetPlayerRebel(attacker);
                }
@@ -365,7 +370,7 @@ public void BalanceTeams() {
           // Check if the ratio is above 2 reds to 1 blue
           if (float(GetTeamPlayerCount(TFTeam_Blue))/float(GetTeamPlayerCount(TFTeam_Red)) > 0.5) {
                // Balance the players on blue team if the ratio is off
-               if (IsValidClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue) {
+               if (IsValidClient(i) && IsPlayerBlue(i)) {
                     TF2_ChangeClientTeam(i, TFTeam_Red);
                     TF2_RespawnPlayer(i);
                }
@@ -388,6 +393,22 @@ public int GetTeamPlayerCount(TFTeam tfteam) {
      }
 
      return 0;
+}
+
+public bool IsPlayerRed(int client) {
+     if (TF2_GetClientTeam(client) == TFTeam_Red) {
+          return true;
+     }
+
+     return false;
+}
+
+public bool IsPlayerBlue(int client) {
+     if (TF2_GetClientTeam(client) == TFTeam_Blue) {
+          return true;
+     }
+
+     return false;
 }
 
 // Warden functions
