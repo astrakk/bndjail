@@ -209,7 +209,6 @@ public void BalanceTeams() {
           if (float(GetTeamPlayerCount(TFTeam_Blue))/float(GetTeamPlayerCount(TFTeam_Red)) > 0.5) {
                // Balance the players on blue team if the ratio is off
                if (IsValidClient(i) && TF2_GetClientTeam(i) == TFTeam_Blue) {
-                    PrintToChatAll("Balancing client %i", i);
                     TF2_ChangeClientTeam(i, TFTeam_Red);
                     TF2_RespawnPlayer(i);
                }
