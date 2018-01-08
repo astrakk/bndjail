@@ -104,6 +104,24 @@ native void BNDJail_RemovePlayerFreeday(int client);
 native void BNDJail_ClearFreedays();
 
 
+/**
+ * Returns whether or not warden is currently locked
+ *
+ * @return          true if warden is locked, false otherwise
+*/
+native bool BNDJail_IsWardenLocked();
+
+/**
+ * Lock warden access to disable players becoming warden
+ */
+native void BNDJail_LockWarden();
+
+/**
+ * Unlock warden access to enable players becoming warden
+ */
+native void BNDJail_UnlockWarden();
+
+
 /** ==========[ FORWARDS ]========== **/
 
 /**
