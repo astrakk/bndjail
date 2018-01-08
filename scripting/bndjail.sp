@@ -53,6 +53,7 @@ public void OnPluginStart() {
      RegConsoleCmd("sm_warden", Command_WardenVolunteer, "Volunteer to become the warden when on blue team");
      RegConsoleCmd("sm_uw", Command_WardenRetire, "Retire as warden to become a regular guard");
      RegConsoleCmd("sm_unwarden", Command_WardenRetire, "Retire as warden to become a regular guard");
+     RegConsoleCmd("sm_givelr", Command_GiveLastRequest, "Give a player their last request as warden");
 
      // Admin commands
      RegAdminCmd("sm_forcewarden", Admin_ForceWarden, 6, "Force a player to be warden if they are on blue");
@@ -120,6 +121,7 @@ public void OnEntityCreated(int entity, const char[] classname) {
 
 /** ===========[ COMMANDS ]========== **/
 
+// Public commands
 public Action Command_WardenVolunteer(int client, int args) {
      // Check that the client is alive
      if (!IsValidClient(client, false, true, true)) {
@@ -128,7 +130,7 @@ public Action Command_WardenVolunteer(int client, int args) {
      }
 
      // Check that client is on blue
-     if (IsPlayerBlue(client)) {
+     if (!IsPlayerBlue(client)) {
           PrintToChat(client, "[JAIL] Error: must be on blue team to become warden");
           return Plugin_Handled;
      }
@@ -162,7 +164,12 @@ public Action Command_WardenRetire(int client, int args) {
      return Plugin_Handled;
 }
 
+public Action Command_GiveLastRequest(int client, int args) {
+     Menu_GiveLastRequest(client);
+}
 
+
+// Admin commands
 public Action Admin_ForceWarden(int client, int args) {
      // Check that there is at least 1 argument
      if (args < 1) {
@@ -359,7 +366,48 @@ public Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float
      }
 
      return Plugin_Continue;
-}     
+}
+
+
+/** ===========[ MENUS ]========== **/
+
+// Give last request menu
+public Action Menu_GiveLastRequest(int client) {
+     // Client not warden
+     if (!IsPlayerWarden(client)) {
+          return Plugin_Handled;
+     }
+
+     // Create the menu and set the title
+     Menu menu = new Menu(Handler_GiveLastRequest, MenuAction_Select);
+     SetMenuTitle(menu, "Who should receive LR?");
+
+     // Variable to store the player names in
+     char id[8];
+     char name[MAX_NAME_LENGTH];
+
+     // Iterate over all players and add their name to the menu if they're alive and on red team
+     for (int i = 0; i < MaxClients; i++) {
+          if (IsValidClient(i, false, true, true) && IsPlayerRed(i)) {
+               IntToString(i, id, sizeof(id));
+               GetClientName(i, name, sizeof(name));
+               AddMenuItem(menu, id, name);
+          }
+     }
+
+     DisplayMenu(menu, client, 20);
+
+     return Plugin_Handled;
+}
+
+public int Handler_GiveLastRequest(Menu menu, MenuAction action, int param1, int param2) {
+     switch(action) {
+          case MenuAction_Select: {
+               // TO IMPLEMENT: Last request menu shown to target
+          }
+     }
+     return 0;
+}
 
 
 /** ===========[ FUNCTIONS ]=========== **/
