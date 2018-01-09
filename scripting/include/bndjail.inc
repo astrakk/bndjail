@@ -168,6 +168,12 @@ forward void BNDJail_OnWardenLocked();
 forward void BNDJail_OnWardenUnlocked();
 
 
+/**
+ * Called when the last request menu is requested to be opened
+ */
+forward void BNDJail_OnLastRequestMenu(int client);
+
+
 /** ==========[ DEPENDENCY ]========== **/
 
 #if !defined REQUIRE_PLUGIN

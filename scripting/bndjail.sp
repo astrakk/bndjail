@@ -21,6 +21,7 @@ Handle g_hOnSetPlayerFreeday;
 Handle g_hOnRemovePlayerFreeday;
 Handle g_hOnWardenLocked;
 Handle g_hOnWardenUnlocked;
+Handle g_hOnLastRequestMenu;
 
 public Plugin myinfo = {
      name = "[TF2] BND Jailbreak",
@@ -105,6 +106,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
      g_hOnWardenLocked = CreateGlobalForward("BNDJail_OnWardenLocked", ET_Event, Param_Cell);
      g_hOnWardenUnlocked = CreateGlobalForward("BNDJail_OnWardenUnlocked", ET_Event, Param_Cell);
 
+     g_hOnLastRequestMenu = CreateGlobalForward("BNDJail_OnLastRequestMenu", ET_Event, Param_Cell);
+
      return APLRes_Success;
 }
 
@@ -171,6 +174,8 @@ public Action Command_GiveLastRequest(int client, int args) {
      }
 
      Menu_GiveLastRequest(client);
+
+     return Plugin_Handled;
 }
 
 
@@ -403,7 +408,17 @@ public Action Menu_GiveLastRequest(int client) {
 public int Handler_GiveLastRequest(Menu menu, MenuAction action, int param1, int param2) {
      switch(action) {
           case MenuAction_Select: {
-               // TO IMPLEMENT: Last request menu shown to target
+               // Get the client id of the selected player
+               char id[8];
+               GetMenuItem(menu, param2, id, sizeof(id));
+
+               // Convert the id from a string to an int
+               int client = StringToInt(id);
+
+               // Call the OnLastRequestMenu forward for LR menu plugin to handle
+               Call_StartForward(g_hOnLastRequestMenu);
+               Call_PushCell(client);
+               Call_Finish();
           }
      }
      return 0;
