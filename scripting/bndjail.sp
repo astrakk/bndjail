@@ -21,7 +21,6 @@ Handle g_hOnSetPlayerFreeday;
 Handle g_hOnRemovePlayerFreeday;
 Handle g_hOnWardenLocked;
 Handle g_hOnWardenUnlocked;
-Handle g_hOnLastRequestMenu;
 
 public Plugin myinfo = {
      name = "[TF2] BND Jailbreak",
@@ -107,8 +106,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
      g_hOnWardenLocked = CreateGlobalForward("BNDJail_OnWardenLocked", ET_Event, Param_Cell);
      g_hOnWardenUnlocked = CreateGlobalForward("BNDJail_OnWardenUnlocked", ET_Event, Param_Cell);
-
-     g_hOnLastRequestMenu = CreateGlobalForward("BNDJail_OnLastRequestMenu", ET_Event, Param_Cell);
 
      return APLRes_Success;
 }
