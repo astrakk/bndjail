@@ -54,7 +54,6 @@ public void OnPluginStart() {
      RegConsoleCmd("sm_warden", Command_WardenVolunteer, "Volunteer to become the warden when on blue team");
      RegConsoleCmd("sm_uw", Command_WardenRetire, "Retire as warden to become a regular guard");
      RegConsoleCmd("sm_unwarden", Command_WardenRetire, "Retire as warden to become a regular guard");
-     RegConsoleCmd("sm_givelr", Command_GiveLastRequest, "Give a player their last request as warden");
 
      // Admin commands
      RegAdminCmd("sm_forcewarden", Admin_ForceWarden, 6, "Force a player to be warden if they are on blue");
@@ -92,6 +91,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
      CreateNative("BNDJail_IsWardenLocked", Native_IsWardenLocked);
      CreateNative("BNDJail_LockWarden", Native_LockWarden);
      CreateNative("BNDJail_UnlockWarden", Native_UnlockWarden);
+
+     CreateNative("BNDJail_IsPlayerRed", Native_IsPlayerRed);
+     CreateNative("BNDJail_IsPlayerBlue", Native_IsPlayerBlue);
 
      // Forwards
      g_hOnSetPlayerWarden = CreateGlobalForward("BNDJail_OnSetPlayerWarden", ET_Event, Param_Cell);
@@ -163,17 +165,6 @@ public Action Command_WardenRetire(int client, int args) {
      }
 
      RemovePlayerWarden(client);
-
-     return Plugin_Handled;
-}
-
-public Action Command_GiveLastRequest(int client, int args) {
-     // Client not warden
-     if (!IsPlayerWarden(client)) {
-          return Plugin_Handled;
-     }
-
-     Menu_GiveLastRequest(client);
 
      return Plugin_Handled;
 }
@@ -342,7 +333,7 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
      int victim = GetClientOfUserId(event.GetInt("userid"));
      int attacker = GetClientOfUserId(event.GetInt("attacker"));
 
-     if (IsPlayerRed(attacker)) {
+     if (IsValidClient(attacker) && IsPlayerRed(attacker)) {
           SetEventBroadcast(event, true);
      }
 
@@ -376,52 +367,6 @@ public Action Hook_OnTakeDamage(int victim, int &attacker, int &inflictor, float
      }
 
      return Plugin_Continue;
-}
-
-
-/** ===========[ MENUS ]========== **/
-
-// Give last request menu
-public Action Menu_GiveLastRequest(int client) {
-     // Create the menu and set the title
-     Menu menu = new Menu(Handler_GiveLastRequest, MenuAction_Select);
-     SetMenuTitle(menu, "Who should receive LR?");
-
-     // Variable to store the player names in
-     char id[8];
-     char name[MAX_NAME_LENGTH];
-
-     // Iterate over all players and add their name to the menu if they're alive and on red team
-     for (int i = 0; i < MaxClients; i++) {
-          if (IsValidClient(i, false, true, true) && IsPlayerRed(i)) {
-               IntToString(i, id, sizeof(id));
-               GetClientName(i, name, sizeof(name));
-               AddMenuItem(menu, id, name);
-          }
-     }
-
-     DisplayMenu(menu, client, 20);
-
-     return Plugin_Handled;
-}
-
-public int Handler_GiveLastRequest(Menu menu, MenuAction action, int param1, int param2) {
-     switch(action) {
-          case MenuAction_Select: {
-               // Get the client id of the selected player
-               char id[8];
-               GetMenuItem(menu, param2, id, sizeof(id));
-
-               // Convert the id from a string to an int
-               int client = StringToInt(id);
-
-               // Call the OnLastRequestMenu forward for LR menu plugin to handle
-               Call_StartForward(g_hOnLastRequestMenu);
-               Call_PushCell(client);
-               Call_Finish();
-          }
-     }
-     return 0;
 }
 
 
@@ -786,4 +731,17 @@ public int Native_LockWarden(Handle plugin, int numParams) {
 
 public int Native_UnlockWarden(Handle plugin, int numParams) {
      UnlockWarden();
+}
+
+
+public int Native_IsPlayerRed(Handle plugin, int numParams) {
+     int client = GetNativeCell(1);
+
+     return IsPlayerRed(client);
+}
+
+public int Native_IsPlayerBlue(Handle plugin, int numParams) {
+     int client = GetNativeCell(1);
+
+     return IsPlayerBlue(client);
 }

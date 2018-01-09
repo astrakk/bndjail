@@ -122,6 +122,23 @@ native void BNDJail_LockWarden();
 native void BNDJail_UnlockWarden();
 
 
+/**
+ * Returns whether or not the player is on red team
+ *
+ * @param client    the client index to check
+ * @return          true if the player is on red team, false otherwise
+ */
+native bool BNDJail_IsPlayerRed(int client);
+
+/**
+ * Returns whether or not the player is on blue team
+ *
+ * @param client    the client index to check
+ * @return          true if the player is on blue team, false otherwise
+ */
+native bool BNDJail_IsPlayerBlue(int client);
+
+
 /** ==========[ FORWARDS ]========== **/
 
 /**
@@ -168,12 +185,6 @@ forward void BNDJail_OnWardenLocked();
 forward void BNDJail_OnWardenUnlocked();
 
 
-/**
- * Called when the last request menu is requested to be opened
- */
-forward void BNDJail_OnLastRequestMenu(int client);
-
-
 /** ==========[ DEPENDENCY ]========== **/
 
 #if !defined REQUIRE_PLUGIN
@@ -198,6 +209,9 @@ public void __pl_bndjail_SetNTVOptional() {
      MarkNativeAsOptional("BNDJail_IsWardenLocked");
      MarkNativeAsOptional("BNDJail_LockWarden");
      MarkNativeAsOptional("BNDJail_UnlockWarden");
+
+     MarkNativeAsOptional("BNDJail_IsPlayerRed");
+     MarkNativeAsOptional("BNDJail_IsPlayerBlue");
 }
 #endif
 
