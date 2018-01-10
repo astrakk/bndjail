@@ -2,7 +2,7 @@
 #include <bndjail>
 
 // Global variables and arrays
-ArrayList g_aLastRequestQueue;
+ArrayList g_cLastRequestQueue;
 bool g_bIsLastRequestLocked = false;
 bool g_bIsLastRequestGiven = false;
 Menu g_hGiveLastRequest;
@@ -25,7 +25,7 @@ public void OnPluginStart() {
      HookEvent("teamplay_round_win", Event_RoundEnd, EventHookMode_Pre);
 
      // Create last request queue
-     g_aLastRequestQueue = CreateArray(64);
+     g_cLastRequestQueue = CreateArray(64);
      AddLastRequest("LR_None");
 
      // Create the last request menus
@@ -67,7 +67,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 
      if (IsTodayLastRequest()) {
           char handler[32];
-          GetArrayString(g_aLastRequestQueue, 0, handler, sizeof(handler));
+          GetArrayString(g_cLastRequestQueue, 0, handler, sizeof(handler));
           ExecuteLastRequest(handler);
      }
 }
@@ -82,7 +82,7 @@ public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 
      if (IsTodayLastRequest()) {
           char handler[32];
-          GetArrayString(g_aLastRequestQueue, 0, handler, sizeof(handler));
+          GetArrayString(g_cLastRequestQueue, 0, handler, sizeof(handler));
           CleanLastRequest(handler);
      }
 
@@ -231,17 +231,17 @@ public void CleanLastRequest(const char handler[32]) {
 
 
 public void AddLastRequest(const char handler[32]) {
-     PushArrayString(g_aLastRequestQueue, handler);
+     PushArrayString(g_cLastRequestQueue, handler);
 }
 
 public void RemoveLastRequest() {
-     RemoveFromArray(g_aLastRequestQueue, 0);
+     RemoveFromArray(g_cLastRequestQueue, 0);
 }
 
 
 public bool IsTodayLastRequest() {
      char handler[32];
-     if (GetArrayString(g_aLastRequestQueue, 0, handler, sizeof(handler)))
+     if (GetArrayString(g_cLastRequestQueue, 0, handler, sizeof(handler)))
      {
           if (!StrEqual(handler, "LR_None")) {
                return true;
@@ -253,10 +253,10 @@ public bool IsTodayLastRequest() {
 
 public bool IsTomorrowLastRequest() {
      char handler[32];
-     if (GetArraySize(g_aLastRequestQueue) < 2) {
+     if (GetArraySize(g_cLastRequestQueue) < 2) {
           return false;
      }
-     else if (GetArrayString(g_aLastRequestQueue, 1, handler, sizeof(handler)))
+     else if (GetArrayString(g_cLastRequestQueue, 1, handler, sizeof(handler)))
      {
           if (!StrEqual(handler, "LR_None")) {
                return true;
