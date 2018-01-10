@@ -1,5 +1,6 @@
 #include <sourcemod>
 #include <sdktools>
+#include <sdkhooks>
 
 #include <bndjail>
 #include <bndjail_mapcontrol>
@@ -8,12 +9,11 @@
 #pragma newdecls required
 
 // Global variables and arrays
-ArrayList g_iDoorEntities;
-ArrayList g_iDoorButtonEntities;
-ArrayList g_iFFButtonEntities;
+char g_cDoorClassnames[][] = { "func_door", "func_door_rotating", "func_movelinear" };
+ArrayList g_iDoorList;
 
 char g_cDoorName[64];
-char g_cDoorButtonName[64];
+char g_cButtonName[64];
 char g_cFFButtonName[64];
 
 bool g_bIsMapConfigLoaded = false;
@@ -35,7 +35,7 @@ public Plugin myinfo = {
 
 public void OnPluginStart() {
      // Events
-     HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_Pre); // using teamplay_round_start to run before players can move
+     HookEvent("teamplay_round_start", Event_RoundStart, EventHookMode_Post);
 
      // Public commands
      RegConsoleCmd("sm_open", Command_OpenCells, "Open the cell doors as warden");
@@ -45,26 +45,17 @@ public void OnPluginStart() {
      RegAdminCmd("sm_forceopen", Admin_OpenCells, 6, "Open the cell doors as an admin");
      RegAdminCmd("sm_forceclose", Admin_CloseCells, 6, "Close the cell doors as an admin");
 
-     // Create entity index arrays
-     g_iDoorEntities = CreateArray(32);
-     g_iDoorButtonEntities = CreateArray(32);
-     g_iFFButtonEntities = CreateArray(32);
-
      // Translations
      LoadTranslations("common.phrases");
 
      // Read map config
      g_bIsMapConfigLoaded = LoadConfig("addons/sourcemod/configs/bndjail/bndjail_mapcontrol.cfg");
 
-     // Create entity lists if map config loaded
+     // Create door list and hook warden buttons
      if (IsMapConfigLoaded()) {
-          UpdateEntityLists();
+          CreateDoorList();
+          HookAllButtons();
      }
-}
-
-public void OnMapStart() {
-     // Read map config
-     g_bIsMapConfigLoaded = LoadConfig("addons/sourcemod/configs/bndjail/bndjail_mapcontrol.cfg");
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -81,6 +72,16 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
      g_hOnCloseCells = CreateGlobalForward("BNDJail_OnCloseCells", ET_Event, Param_Cell);
 
      return APLRes_Success;
+}
+
+
+/** ==========[ EVENTS ]========== **/
+
+public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast) {
+     if (IsMapConfigLoaded()) {
+          CreateDoorList();
+          HookAllButtons();
+     }
 }
 
 
@@ -129,9 +130,6 @@ public Action Admin_OpenCells(int client, int args) {
 
      OpenCells();
 
-     Call_StartForward(g_hOnOpenCells);
-     Call_Finish();
-
      return Plugin_Handled;
 }
 
@@ -143,20 +141,21 @@ public Action Admin_CloseCells(int client, int args) {
 
      CloseCells();
 
-     Call_StartForward(g_hOnCloseCells);
-     Call_Finish();
-
      return Plugin_Handled;
 }
 
 
-/** ===========[ EVENTS ]=========== **/
+/** ==========[ HOOKS ]========== **/
 
-public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast) {
-     // Map is compatible
-     if (IsMapConfigLoaded()) {
-          UpdateEntityLists();
+public Action Hook_OnButtonPress(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3], int damagecustom) {
+     // Negate button press if attacker is not warden
+     if (IsValidClient(attacker)) {
+          if (!BNDJail_IsPlayerWarden(attacker)) {
+               return Plugin_Handled;
+          }
      }
+
+     return Plugin_Continue;
 }
 
 
@@ -164,15 +163,21 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 
 // Door control functions
 public void OpenCells() {
-     for (int i = 0; i < GetArraySize(g_iDoorEntities); i++) {
-          AcceptEntityInput(GetArrayCell(g_iDoorEntities, i), "Open");
+     for (int i = 0; i < GetDoorCount(); i++) {
+          AcceptEntityInput(GetArrayCell(g_iDoorList, i), "Open");
      }
+
+     Call_StartForward(g_hOnOpenCells);
+     Call_Finish();
 }
 
 public void CloseCells() {
-     for (int i = 0; i < GetArraySize(g_iDoorEntities); i++) {
-          AcceptEntityInput(GetArrayCell(g_iDoorEntities, i), "Close");
+     for (int i = 0; i < GetDoorCount(); i++) {
+          AcceptEntityInput(GetArrayCell(g_iDoorList, i), "Close");
      }
+
+     Call_StartForward(g_hOnCloseCells);
+     Call_Finish();
 }
 
 // Config functions
@@ -195,7 +200,7 @@ public bool LoadConfig(const char[] config) {
      }
 
      KvGetString(kv, "door_name", g_cDoorName, sizeof(g_cDoorName));
-     KvGetString(kv, "door_button", g_cDoorButtonName, sizeof(g_cDoorButtonName));
+     KvGetString(kv, "door_button", g_cButtonName, sizeof(g_cButtonName));
      KvGetString(kv, "ff_button", g_cFFButtonName, sizeof(g_cFFButtonName));
 
      CloseHandle(kv);
@@ -207,53 +212,70 @@ public bool IsMapConfigLoaded() {
      return g_bIsMapConfigLoaded;
 }
 
-// Entity list functions
-public void CreateDoorList(ArrayList array, const char[] name) {
-     // Remove all items from array
-     ClearArray(array);
+public bool CreateDoorList() {
+     // Create a new array
+     g_iDoorList = CreateArray(32);
 
-     // Prepare variables to compare classnames
-     char cDoorClassnames[][] = { "func_door", "func_door_rotating", "func_movelinear" };
-     char cEntityClassname[64];
-     int entity = -1;
+     // Create variables required to locate doors
+     int iEntity = -1;
 
-     // Look for matching classnames and compare m_iName to config file
-     for (int i = 0; i < sizeof(cDoorClassnames); i++) {
-          while ((entity = FindEntityByClassname(entity, cDoorClassnames[i])) != -1) {
-               // Retrieve the entity m_iName
-               GetEntPropString(entity, Prop_Data, "m_iName", cEntityClassname, sizeof(cEntityClassname));
-               if (StrEqual(cEntityClassname, name)) {
-                    PushArrayCell(array, entity);
+     // Search for valid doors and add them to the list
+     for (int i = 0; i < sizeof(g_cDoorClassnames); i++) {
+          while ((iEntity = FindEntityByClassname(iEntity, g_cDoorClassnames[i])) != -1) {
+               if (EntityNameEqual(iEntity, g_cDoorName)) {
+                    AddToDoorList(iEntity);
                }
           }
      }
 }
 
-public void CreateButtonList(ArrayList array, const char[] name) {
-     // Remove all items from array
-     ClearArray(array);
+public void AddToDoorList(int entity) {
+     PushArrayCell(g_iDoorList, entity);
+}
 
-     // Prepare variables to compare classnames
-     char cButtonClassname[] = "func_button";
-     char cEntityClassname[64];
-     int entity = -1;
+public bool EntityNameEqual(int entity, const char[] name) {
+     char cEntityName[64];
 
-     // Look for matching classnames and compare m_iName to config file
-     while ((entity = FindEntityByClassname(entity, cButtonClassname)) != -1) {
-          // Retrieve the entity m_iName
-          GetEntPropString(entity, Prop_Data, "m_iName", cEntityClassname, sizeof(cEntityClassname));
-          if (StrEqual(cEntityClassname, name)) {
-               PushArrayCell(array, entity);
+     // Get the entity name
+     GetEntPropString(entity, Prop_Data, "m_iName", cEntityName, sizeof(cEntityName));
+
+     // Compare to the provided string
+     if (StrEqual(cEntityName, name)) {
+          return true;
+     }
+
+     return false;
+}
+
+public int GetDoorCount() {
+     return GetArraySize(g_iDoorList);
+}
+
+
+public void HookAllButtons() {
+     int iEntity = -1;
+     while ((iEntity = FindEntityByClassname(iEntity, "func_button")) != -1) {
+          if (EntityNameEqual(iEntity, g_cButtonName) || EntityNameEqual(iEntity, g_cFFButtonName)) {
+               HookButtonPress(iEntity);
           }
      }
 }
 
 
-public void UpdateEntityLists() {
-     // Create entity lists using new variables
-     CreateDoorList(g_iDoorEntities, g_cDoorName);
-     CreateButtonList(g_iDoorButtonEntities, g_cDoorButtonName);
-     CreateButtonList(g_iFFButtonEntities, g_cFFButtonName);
+public void HookButtonPress(int entity) {
+     SDKHook(entity, SDKHook_OnTakeDamage, Hook_OnButtonPress);
+}
+
+
+bool IsValidClient(int client, bool bAllowDead = true, bool bAllowAlive = true, bool bAllowBots = true) {
+     if(  !(1 <= client <= MaxClients) ||              /* Is the client a player? */
+          (!IsClientInGame(client)) ||                 /* Is the client in-game? */
+          (IsPlayerAlive(client) && !bAllowAlive) ||   /* Is the client allowed to be alive? */
+          (!IsPlayerAlive(client) && !bAllowDead) ||   /* Is the client allowed to be dead? */
+          (IsFakeClient(client) && !bAllowBots)) {     /* Is the client allowed to be a bot? */
+               return false;
+     }
+     return true;
 }
 
 
