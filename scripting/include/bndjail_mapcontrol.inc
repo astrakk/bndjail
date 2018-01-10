@@ -16,6 +16,13 @@ native void BNDJail_OpenCells();
  */
 native void BNDJail_CloseCells();
 
+/**
+ * Get the number of cell doors detected in the current round
+ *
+ * @return          number of cell doors detected in the current round
+ */
+native int BNDJail_GetDoorCount();
+
 
 /** ==========[ FORWARDS ]========== **/
 
@@ -36,6 +43,8 @@ forward void BNDJail_OnCloseCells(int client);
 public void __pl_bndjail_SetNTVOptional() {
      MarkNativeAsOptional("BNDJail_OpenCells");
      MarkNativeAsOptional("BNDJail_CloseCells");
+
+     MarkNativeAsOptional("BNDJail_GetDoorCount");
 }
 #endif
 

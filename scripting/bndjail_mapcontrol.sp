@@ -67,6 +67,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
      CreateNative("BNDJail_OpenCells", Native_OpenCells);
      CreateNative("BNDJail_CloseCells", Native_CloseCells);
 
+     CreateNative("BNDJail_GetDoorCount", Native_GetDoorCount);
+
      // Forwards
      g_hOnOpenCells = CreateGlobalForward("BNDJail_OnOpenCells", ET_Event, Param_Cell);
      g_hOnCloseCells = CreateGlobalForward("BNDJail_OnCloseCells", ET_Event, Param_Cell);
@@ -287,4 +289,8 @@ public int Native_OpenCells(Handle plugin, int numParams) {
 
 public int Native_CloseCells(Handle plugin, int numParams) {
      CloseCells();
+}
+
+public int Native_GetDoorCount(Handle plugin, int numParams) {
+     return GetDoorCount();
 }
