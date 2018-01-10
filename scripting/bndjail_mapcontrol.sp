@@ -8,13 +8,15 @@
 #pragma newdecls required
 
 // Global variables and arrays
-ArrayList g_iDoorEntityList;
-ArrayList g_iDoorButtonEntityList;
-ArrayList g_iFFButtonEntityList;
+ArrayList g_iDoorEntities;
+ArrayList g_iDoorButtonEntities;
+ArrayList g_iFFButtonEntities;
 
-char g_cDoorEntityName[64];
-char g_cDoorButtonEntityName[64];
-char g_cFFButtonEntityName[64];
+char g_cDoorName[64];
+char g_cDoorButtonName[64];
+char g_cFFButtonName[64];
+
+bool g_bIsMapConfigLoaded = false;
 
 // Forward handles
 Handle g_hOnOpenCells;
@@ -37,27 +39,32 @@ public void OnPluginStart() {
 
      // Public commands
      RegConsoleCmd("sm_open", Command_OpenCells, "Open the cell doors as warden");
-     RegConsoleCmd("sm_close", Command_OpenCells, "Close the cell doors as warden");
+     RegConsoleCmd("sm_close", Command_CloseCells, "Close the cell doors as warden");
 
      // Admin commands
      RegAdminCmd("sm_forceopen", Admin_OpenCells, 6, "Open the cell doors as an admin");
      RegAdminCmd("sm_forceclose", Admin_CloseCells, 6, "Close the cell doors as an admin");
 
      // Create entity index arrays
-     g_iDoorEntityList = CreateArray(32);
-     g_iDoorButtonEntityList = CreateArray(32);
-     g_iFFButtonEntityList = CreateArray(32);
+     g_iDoorEntities = CreateArray(32);
+     g_iDoorButtonEntities = CreateArray(32);
+     g_iFFButtonEntities = CreateArray(32);
 
      // Translations
      LoadTranslations("common.phrases");
 
      // Read map config
-     LoadConfig("/addons/sourcemod/configs/bndjail/bndjail_mapcontrol.cfg");
+     g_bIsMapConfigLoaded = LoadConfig("addons/sourcemod/configs/bndjail/bndjail_mapcontrol.cfg");
+
+     // Create entity lists if map config loaded
+     if (IsMapConfigLoaded()) {
+          UpdateEntityLists();
+     }
 }
 
 public void OnMapStart() {
      // Read map config
-     LoadConfig("/addons/sourcemod/configs/bndjail/bndjail_mapcontrol.cfg");
+     g_bIsMapConfigLoaded = LoadConfig("addons/sourcemod/configs/bndjail/bndjail_mapcontrol.cfg");
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -81,6 +88,11 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 // Public commands
 public Action Command_OpenCells(int client, int args) {
+     // Map not compatible
+     if (!IsMapConfigLoaded()) {
+          return Plugin_Handled;
+     }
+
      // Player not warden
      if (!BNDJail_IsPlayerWarden(client)) {
           return Plugin_Handled;
@@ -92,6 +104,11 @@ public Action Command_OpenCells(int client, int args) {
 }
 
 public Action Command_CloseCells(int client, int args) {
+     // Map not compatible
+     if (!IsMapConfigLoaded()) {
+          return Plugin_Handled;
+     }
+
      // Player not warden
      if (!BNDJail_IsPlayerWarden(client)) {
           return Plugin_Handled;
@@ -105,7 +122,11 @@ public Action Command_CloseCells(int client, int args) {
 
 // Admin commands
 public Action Admin_OpenCells(int client, int args) {
-     // Open the cells if the player is an admin
+     // Map not compatible
+     if (!IsMapConfigLoaded()) {
+          return Plugin_Handled;
+     }
+
      OpenCells();
 
      Call_StartForward(g_hOnOpenCells);
@@ -115,7 +136,11 @@ public Action Admin_OpenCells(int client, int args) {
 }
 
 public Action Admin_CloseCells(int client, int args) {
-     // Close the cells if the player is an admin
+     // Map not compatible
+     if (!IsMapConfigLoaded()) {
+          return Plugin_Handled;
+     }
+
      CloseCells();
 
      Call_StartForward(g_hOnCloseCells);
@@ -128,7 +153,10 @@ public Action Admin_CloseCells(int client, int args) {
 /** ===========[ EVENTS ]=========== **/
 
 public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast) {
-     UpdateEntityLists();
+     // Map is compatible
+     if (IsMapConfigLoaded()) {
+          UpdateEntityLists();
+     }
 }
 
 
@@ -136,14 +164,14 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 
 // Door control functions
 public void OpenCells() {
-     for (int i = 0; i < GetArraySize(g_iDoorEntityList); i++) {
-          AcceptEntityInput(GetArrayCell(g_iDoorEntityList, i), "Open");
+     for (int i = 0; i < GetArraySize(g_iDoorEntities); i++) {
+          AcceptEntityInput(GetArrayCell(g_iDoorEntities, i), "Open");
      }
 }
 
 public void CloseCells() {
-     for (int i = 0; i < GetArraySize(g_iDoorEntityList); i++) {
-          AcceptEntityInput(GetArrayCell(g_iDoorEntityList, i), "Close");
+     for (int i = 0; i < GetArraySize(g_iDoorEntities); i++) {
+          AcceptEntityInput(GetArrayCell(g_iDoorEntities, i), "Close");
      }
 }
 
@@ -166,56 +194,66 @@ public bool LoadConfig(const char[] config) {
           return false;
      }
 
-     KvGetString(kv, "door_name", g_cDoorEntityName, sizeof(g_cDoorEntityName));
-     KvGetString(kv, "door_button", g_cDoorButtonEntityName, sizeof(g_cDoorButtonEntityName));
-     KvGetString(kv, "ff_button", g_cFFButtonEntityName, sizeof(g_cFFButtonEntityName));
+     KvGetString(kv, "door_name", g_cDoorName, sizeof(g_cDoorName));
+     KvGetString(kv, "door_button", g_cDoorButtonName, sizeof(g_cDoorButtonName));
+     KvGetString(kv, "ff_button", g_cFFButtonName, sizeof(g_cFFButtonName));
 
      CloseHandle(kv);
-     UpdateEntityLists();
 
      return true;
 }
 
-public void UpdateEntityLists() {
-     // Clear all entities from the current lists
-     ClearEntityLists();
+public bool IsMapConfigLoaded() {
+     return g_bIsMapConfigLoaded;
+}
 
-     // Update cell door list
-     int entity = 0;
-     while ((entity = FindEntityByClassname(entity, g_cDoorEntityName)) != -1) {
-          PushArrayCell(g_iDoorEntityList, entity);
-     }
+// Entity list functions
+public void CreateDoorList(ArrayList array, const char[] name) {
+     // Remove all items from array
+     ClearArray(array);
 
-     // Update cell button list
-     entity = 0;
-     while ((entity = FindEntityByClassname(entity, g_cDoorButtonEntityName)) != -1) {
-          PushArrayCell(g_iDoorButtonEntityList, entity);
-     }
+     // Prepare variables to compare classnames
+     char cDoorClassnames[][] = { "func_door", "func_door_rotating", "func_movelinear" };
+     char cEntityClassname[64];
+     int entity = -1;
 
-     // Update FF button list
-     entity = 0;
-     while ((entity = FindEntityByClassname(entity, g_cFFButtonEntityName)) != -1) {
-          PushArrayCell(g_iFFButtonEntityList, entity);
+     // Look for matching classnames and compare m_iName to config file
+     for (int i = 0; i < sizeof(cDoorClassnames); i++) {
+          while ((entity = FindEntityByClassname(entity, cDoorClassnames[i])) != -1) {
+               // Retrieve the entity m_iName
+               GetEntPropString(entity, Prop_Data, "m_iName", cEntityClassname, sizeof(cEntityClassname));
+               if (StrEqual(cEntityClassname, name)) {
+                    PushArrayCell(array, entity);
+               }
+          }
      }
 }
 
-public void ClearEntityLists() {
-     int i;
+public void CreateButtonList(ArrayList array, const char[] name) {
+     // Remove all items from array
+     ClearArray(array);
 
-     // Clear cell door list
-     for (i = 0; i < GetArraySize(g_iDoorEntityList); i++) {
-          RemoveFromArray(g_iDoorEntityList, i);
-     }
+     // Prepare variables to compare classnames
+     char cButtonClassname[] = "func_button";
+     char cEntityClassname[64];
+     int entity = -1;
 
-     // Clear cell button list
-     for (i = 0; i < GetArraySize(g_iDoorButtonEntityList); i++) {
-          RemoveFromArray(g_iDoorButtonEntityList, i);
+     // Look for matching classnames and compare m_iName to config file
+     while ((entity = FindEntityByClassname(entity, cButtonClassname)) != -1) {
+          // Retrieve the entity m_iName
+          GetEntPropString(entity, Prop_Data, "m_iName", cEntityClassname, sizeof(cEntityClassname));
+          if (StrEqual(cEntityClassname, name)) {
+               PushArrayCell(array, entity);
+          }
      }
+}
 
-     // Clear ff button list
-     for (i = 0; i < GetArraySize(g_iFFButtonEntityList); i++) {
-          RemoveFromArray(g_iFFButtonEntityList, i);
-     }
+
+public void UpdateEntityLists() {
+     // Create entity lists using new variables
+     CreateDoorList(g_iDoorEntities, g_cDoorName);
+     CreateButtonList(g_iDoorButtonEntities, g_cDoorButtonName);
+     CreateButtonList(g_iFFButtonEntities, g_cFFButtonName);
 }
 
 
