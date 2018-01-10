@@ -43,6 +43,11 @@ public void OnPluginStart() {
      RegAdminCmd("sm_forceopen", Admin_OpenCells, 6, "Open the cell doors as an admin");
      RegAdminCmd("sm_forceclose", Admin_CloseCells, 6, "Close the cell doors as an admin");
 
+     // Create entity index arrays
+     g_iDoorEntityList = CreateArray(32);
+     g_iDoorButtonEntityList = CreateArray(32);
+     g_iFFButtonEntityList = CreateArray(32);
+
      // Translations
      LoadTranslations("common.phrases");
 
