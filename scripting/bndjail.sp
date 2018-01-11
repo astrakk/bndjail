@@ -62,6 +62,15 @@ public void OnPluginStart() {
 
      // Translations
      LoadTranslations("common.phrases");
+
+     // Server ConVars
+     SetConVarInt(FindConVar("mp_stalemate_enable"), 0);
+     SetConVarInt(FindConVar("tf_arena_use_queue"), 0);
+     SetConVarInt(FindConVar("mp_teams_unbalance_limit"), 0);
+     SetConVarInt(FindConVar("mp_autoteambalance"), 0);
+     SetConVarInt(FindConVar("tf_arena_first_blood"), 0);
+     SetConVarInt(FindConVar("mp_scrambleteams_auto"), 0);
+     SetConVarInt(FindConVar("phys_pushscale"), 1000);
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
