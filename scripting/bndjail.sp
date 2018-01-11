@@ -143,6 +143,7 @@ public Action Command_WardenVolunteer(int client, int args) {
      // Check that the player isn't already warden
      if (IsPlayerWarden(client)) {
           PrintToChat(client, "[JAIL] Error: you are already the warden");
+          return Plugin_Handled;
      }
 
      // Check that client is on blue
@@ -219,6 +220,7 @@ public Action Admin_ForceWarden(int client, int args) {
           return Plugin_Handled;
      }
 
+     ClearWarden();
      SetPlayerWarden(target);
      return Plugin_Handled;
 }
@@ -276,7 +278,7 @@ public Action Admin_ForceFreeday(int client, int args) {
      }
 
      // Target not on red team
-     if (!IsPlayerRed(client)) {
+     if (!IsPlayerRed(target)) {
           PrintToChat(client, "[JAIL] Error: target is not on red team");
           return Plugin_Handled;
      }
