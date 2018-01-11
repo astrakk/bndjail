@@ -127,13 +127,18 @@ public void OnEntityCreated(int entity, const char[] classname) {
 public Action Command_WardenVolunteer(int client, int args) {
      // Check that the client is alive
      if (!IsValidClient(client, false, true, true)) {
-          PrintToChat(client, "[JAIL] Error: must be alive to become warden");
+          PrintToChat(client, "[JAIL] Error: must be alive to become the warden");
           return Plugin_Handled;
+     }
+
+     // Check that the player isn't already warden
+     if (IsPlayerWarden(client)) {
+          PrintToChat(client, "[JAIL] Error: you are already the warden");
      }
 
      // Check that client is on blue
      if (!IsPlayerBlue(client)) {
-          PrintToChat(client, "[JAIL] Error: must be on blue team to become warden");
+          PrintToChat(client, "[JAIL] Error: must be on blue team to become the warden");
           return Plugin_Handled;
      }
 
@@ -145,7 +150,7 @@ public Action Command_WardenVolunteer(int client, int args) {
 
      // Check that there are no other wardens
      if (IsWardenActive()) {
-          PrintToChat(client, "[JAIL] Error: someone is already a warden");
+          PrintToChat(client, "[JAIL] Error: someone is already the warden");
           return Plugin_Handled;
      }
      
@@ -157,7 +162,7 @@ public Action Command_WardenVolunteer(int client, int args) {
 public Action Command_WardenRetire(int client, int args) {
      // Check that the player is currently warden
      if (!IsPlayerWarden(client)) {
-          PrintToChat(client, "[JAIL] Error: you are not currently warden");
+          PrintToChat(client, "[JAIL] Error: you are not currently the warden");
           return Plugin_Handled;
      }
 
@@ -171,6 +176,7 @@ public Action Command_WardenRetire(int client, int args) {
 public Action Admin_ForceWarden(int client, int args) {
      // Check that there is at least 1 argument
      if (args < 1) {
+          PrintToChat(client, "[JAIL] Usage: sm_forcewarden <#userid|name>");
           return Plugin_Handled;
      }
 
@@ -188,16 +194,19 @@ public Action Admin_ForceWarden(int client, int args) {
 
      // Target not alive
      if (!IsValidClient(target, false, true, true)) {
+          PrintToChat(client, "[JAIL] Error: target must be in-game and alive");
           return Plugin_Handled;
      }
 
      // Target not on blue team
      if (!IsPlayerBlue(target)) {
+          PrintToChat(client, "[JAIL] Error: target is not on blue team");
           return Plugin_Handled;
      }
 
      // Target is already warden
      if (IsPlayerWarden(target)) {
+          PrintToChat(client, "[JAIL] Error: target is already the warden");
           return Plugin_Handled;
      }
 
@@ -225,6 +234,7 @@ public Action Admin_RemoveWarden(int client, int args) {
 
      // Target not warden
      if (!IsPlayerWarden(target)) {
+          PrintToChat(client, "[JAIL] Error: target is not the warden");
           return Plugin_Handled;
      }
 
@@ -252,16 +262,19 @@ public Action Admin_ForceFreeday(int client, int args) {
 
      // Target not alive
      if (!IsValidClient(target, false, true, true)) {
+          PrintToChat(client, "[JAIL] Error: target must be in-game and alive");
           return Plugin_Handled;
      }
 
      // Target not on red team
      if (!IsPlayerRed(client)) {
+          PrintToChat(client, "[JAIL] Error: target is not on red team");
           return Plugin_Handled;
      }
 
      // Target already freeday
      if (IsPlayerFreeday(target)) {
+          PrintToChat(client, "[JAIL] Error: target is already a freeday");
           return Plugin_Handled;
      }
 
@@ -289,6 +302,7 @@ public Action Admin_RemoveFreeday(int client, int args) {
 
      // Target not freeday
      if (!IsPlayerFreeday(target)) {
+          PrintToChat(client, "[JAIL] Error: target is not a freeday");
           return Plugin_Handled;
      }
 
@@ -378,6 +392,7 @@ public void BalanceTeams() {
                if (IsValidClient(i) && IsPlayerBlue(i)) {
                     TF2_ChangeClientTeam(i, TFTeam_Red);
                     TF2_RespawnPlayer(i);
+                    PrintToChat(i, "[JAIL] You have been autobalanced to fix the team ratio");
                }
           }
      }
@@ -419,6 +434,7 @@ public bool IsPlayerBlue(int client) {
 // Warden functions
 public void LockWarden() {
      g_bIsWardenLocked = true;
+     PrintToChatAll("[JAIL] Warden is now locked");
 
      Call_StartForward(g_hOnWardenLocked);
      Call_Finish();
@@ -426,6 +442,7 @@ public void LockWarden() {
 
 public void UnlockWarden() {
      g_bIsWardenLocked = false;
+     PrintToChatAll("[JAIL] Warden is now unlocked");
 
      Call_StartForward(g_hOnWardenUnlocked);
      Call_Finish();
@@ -486,6 +503,8 @@ public void ClearPlayerWeapons(int client) {
                RemovePlayerWeapon(client, 0);
           }
      }
+
+     PrintToChat(client, "[JAIL] Your ammo and weapons have been removed");
 }
 
 public void RemovePlayerWeapon(int client, int slot) {
@@ -520,7 +539,9 @@ public void HookPlayerDamage(int client) {
 
 // Clear role functions
 public void ClearWarden() {
-     RemovePlayerWarden(GetWarden());
+     for (int i = 0; i < MaxClients; i++) {
+          RemovePlayerWarden(i);
+     }
 }
 
 public void ClearRebels() {
@@ -538,12 +559,18 @@ public void ClearFreedays() {
 // Set role functions
 public void SetPlayerWarden(int client) {
      g_iWarden = client;
-     
-     // Only set the player colour if warden is not unset
-     if (IsWardenActive()) {
-          SetPlayerColour(client, 0, 0, 255, 255);
-     }
 
+     // Set the player colour
+     SetPlayerColour(client, 0, 0, 255, 255);
+
+     // Get the client name
+     char cClientName[MAX_NAME_LENGTH];
+     GetClientName(client, cClientName, sizeof(cClientName));
+
+     // Notify the chat
+     PrintToChatAll("[JAIL] %s is now the warden", cClientName);
+
+     // Call the forward
      Call_StartForward(g_hOnSetPlayerWarden);
      Call_PushCell(client);
      Call_Finish();
@@ -551,8 +578,18 @@ public void SetPlayerWarden(int client) {
 
 public void SetPlayerRebel(int client) {
      g_bIsRebel[client] = true;
+
+     // Set the player colour
      SetPlayerColour(client, 0, 255, 0, 255);
 
+     // Get the client name
+     char cClientName[MAX_NAME_LENGTH];
+     GetClientName(client, cClientName, sizeof(cClientName));
+
+     // Notify the chat
+     PrintToChatAll("[JAIL] %s is now a rebel", cClientName);
+
+     // Call the forward
      Call_StartForward(g_hOnSetPlayerRebel);
      Call_PushCell(client);
      Call_Finish();
@@ -560,8 +597,18 @@ public void SetPlayerRebel(int client) {
 
 public void SetPlayerFreeday(int client) {
      g_bIsFreeday[client] = true;
+
+     // Set the player colour
      SetPlayerColour(client, 255, 0, 0, 255);
 
+     // Get the client name
+     char cClientName[MAX_NAME_LENGTH];
+     GetClientName(client, cClientName, sizeof(cClientName));
+
+     // Notify the chat
+     PrintToChatAll("[JAIL] %s is now a freeday", cClientName);
+
+     // Call the forward
      Call_StartForward(g_hOnSetPlayerFreeday);
      Call_PushCell(client);
      Call_Finish();
@@ -570,9 +617,19 @@ public void SetPlayerFreeday(int client) {
 // Remove role functions
 public void RemovePlayerWarden(int client) {
      if (IsPlayerWarden(client)) {
-          SetPlayerWarden(-1);
+          g_iWarden = -1;
+
+          // Remove the player colour
           ClearPlayerColour(client);
 
+          // Get the client name
+          char cClientName[MAX_NAME_LENGTH];
+          GetClientName(client, cClientName, sizeof(cClientName));
+
+          // Notify the chat
+          PrintToChatAll("[JAIL] %s is no longer the warden", cClientName);
+
+          // Call the forward
           Call_StartForward(g_hOnRemovePlayerWarden);
           Call_PushCell(client);
           Call_Finish();
@@ -581,8 +638,18 @@ public void RemovePlayerWarden(int client) {
 
 public void RemovePlayerRebel(int client) {
      g_bIsRebel[client] = false;
+
+     // Remove the player colour
      ClearPlayerColour(client);
 
+     // Get the client name
+     char cClientName[MAX_NAME_LENGTH];
+     GetClientName(client, cClientName, sizeof(cClientName));
+
+     // Notify the chat
+     PrintToChatAll("[JAIL] %s is no longer a rebel", cClientName);
+
+     // Call the forward
      Call_StartForward(g_hOnRemovePlayerRebel);
      Call_PushCell(client);
      Call_Finish();
@@ -590,8 +657,18 @@ public void RemovePlayerRebel(int client) {
      
 public void RemovePlayerFreeday(int client) {
      g_bIsFreeday[client] = false;
+
+     // Remove the player colour
      ClearPlayerColour(client);
 
+     // Get the client name
+     char cClientName[MAX_NAME_LENGTH];
+     GetClientName(client, cClientName, sizeof(cClientName));
+
+     // Notify the chat
+     PrintToChatAll("[JAIL] %s is no longer a freeday", cClientName);
+
+     // Call the forward
      Call_StartForward(g_hOnRemovePlayerFreeday);
      Call_PushCell(client);
      Call_Finish();
