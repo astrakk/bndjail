@@ -45,11 +45,13 @@ public void OnPluginStart() {
 public Action Command_GiveLastRequest(int client, int args) {
      // Client not warden
      if (!BNDJail_IsPlayerWarden(client)) {
+          PrintToChat(client, "[JAIL] Error: you are not the warden");
           return Plugin_Handled;
      }
 
      // Last request already given
      if (IsLastRequestGiven()) {
+          PrintToChat(client, "[JAIL] Error: last request has already been given");
           return Plugin_Handled;
      }
      
@@ -134,6 +136,12 @@ public int Handler_GiveLastRequest(Menu menu, MenuAction action, int param1, int
 
                // Call the last request menu on the target client
                Menu_SelectLastRequest(client);
+
+               // Notify the chat
+               char cClientName[MAX_NAME_LENGTH];
+               GetClientName(client, cClientName, sizeof(cClientName));
+
+               PrintToChatAll("[JAIL] Warden has given %s their last request", cClientName);
           }
      }
 
@@ -166,10 +174,19 @@ public int Handler_SelectLastRequest(Menu menu, MenuAction action, int param1, i
 
                // Add the selected LR to the queue
                AddLastRequest(handler);
+
+               // Notify the chat
+               char cClientName[MAX_NAME_LENGTH];
+               GetClientName(param1, cClientName, sizeof(cClientName));
+
+               PrintToChatAll("[JAIL] %s has selected their last request", cClientName);
           }
           case MenuAction_Cancel: {
                // Allow the warden to re-give LR if the menu is closed
                RemoveLastRequestGiven();
+
+               // Notify the chat
+               PrintToChatAll("[JAIL] Last request menu was closed without selecting anything");
           }
      }
 
@@ -186,10 +203,12 @@ public void CancelLastRequestMenus() {
 
 public void LockLastRequest() {
      g_bIsLastRequestLocked = true;
+     PrintToChatAll("[JAIL] Last request is now locked");
 }
 
 public void UnlockLastRequest() {
      g_bIsLastRequestLocked = false;
+     PrintToChatAll("[JAIL] Last request is now unlocked");
 }
 
 public void SetLastRequestGiven() {

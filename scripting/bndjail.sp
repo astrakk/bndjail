@@ -162,7 +162,7 @@ public Action Command_WardenVolunteer(int client, int args) {
 public Action Command_WardenRetire(int client, int args) {
      // Check that the player is currently warden
      if (!IsPlayerWarden(client)) {
-          PrintToChat(client, "[JAIL] Error: you are not currently the warden");
+          PrintToChat(client, "[JAIL] Error: you are not the warden");
           return Plugin_Handled;
      }
 
