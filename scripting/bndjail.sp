@@ -278,6 +278,7 @@ public Action Admin_ForceFreeday(int client, int args) {
           return Plugin_Handled;
      }
 
+     RemovePlayerRebel(target);
      SetPlayerFreeday(target);
      return Plugin_Handled;
 }
@@ -503,8 +504,6 @@ public void ClearPlayerWeapons(int client) {
                RemovePlayerWeapon(client, 0);
           }
      }
-
-     PrintToChat(client, "[JAIL] Your ammo and weapons have been removed");
 }
 
 public void RemovePlayerWeapon(int client, int slot) {
@@ -637,41 +636,45 @@ public void RemovePlayerWarden(int client) {
 }
 
 public void RemovePlayerRebel(int client) {
-     g_bIsRebel[client] = false;
+     if (IsPlayerRebel(client)) {
+          g_bIsRebel[client] = false;
 
-     // Remove the player colour
-     ClearPlayerColour(client);
+          // Remove the player colour
+          ClearPlayerColour(client);
 
-     // Get the client name
-     char cClientName[MAX_NAME_LENGTH];
-     GetClientName(client, cClientName, sizeof(cClientName));
+          // Get the client name
+          char cClientName[MAX_NAME_LENGTH];
+          GetClientName(client, cClientName, sizeof(cClientName));
 
-     // Notify the chat
-     PrintToChatAll("[JAIL] %s is no longer a rebel", cClientName);
+          // Notify the chat
+          PrintToChatAll("[JAIL] %s is no longer a rebel", cClientName);
 
-     // Call the forward
-     Call_StartForward(g_hOnRemovePlayerRebel);
-     Call_PushCell(client);
-     Call_Finish();
+          // Call the forward
+          Call_StartForward(g_hOnRemovePlayerRebel);
+          Call_PushCell(client);
+          Call_Finish();
+     }
 }
      
 public void RemovePlayerFreeday(int client) {
-     g_bIsFreeday[client] = false;
+     if (IsPlayerFreeday(client)) {
+          g_bIsFreeday[client] = false;
 
-     // Remove the player colour
-     ClearPlayerColour(client);
+          // Remove the player colour
+          ClearPlayerColour(client);
 
-     // Get the client name
-     char cClientName[MAX_NAME_LENGTH];
-     GetClientName(client, cClientName, sizeof(cClientName));
+          // Get the client name
+          char cClientName[MAX_NAME_LENGTH];
+          GetClientName(client, cClientName, sizeof(cClientName));
 
-     // Notify the chat
-     PrintToChatAll("[JAIL] %s is no longer a freeday", cClientName);
+          // Notify the chat
+          PrintToChatAll("[JAIL] %s is no longer a freeday", cClientName);
 
-     // Call the forward
-     Call_StartForward(g_hOnRemovePlayerFreeday);
-     Call_PushCell(client);
-     Call_Finish();
+          // Call the forward
+          Call_StartForward(g_hOnRemovePlayerFreeday);
+          Call_PushCell(client);
+          Call_Finish();
+     }
 }
 
 // Get role functions
