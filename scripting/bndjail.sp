@@ -37,7 +37,7 @@ public void OnPluginStart() {
      // Events
      HookEvent("arena_round_start", Event_RoundStart, EventHookMode_Pre);
      HookEvent("teamplay_round_win", Event_RoundEnd, EventHookMode_Pre);
-     HookEvent("player_connect", Event_PlayerConnection, EventHookMode_Pre);
+     HookEvent("player_connect_client", Event_PlayerConnection, EventHookMode_Pre);
      HookEvent("player_disconnect", Event_PlayerConnection, EventHookMode_Pre);
      HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
      HookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
