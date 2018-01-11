@@ -42,6 +42,7 @@ public void OnPluginStart() {
      HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
      HookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
      HookEvent("post_inventory_application", Event_PlayerSpawn, EventHookMode_Post);
+     HookEvent("server_cvar", Event_ChangeCvar, EventHookMode_Pre);
 
      // Hook all player damage
      for (int i = 0; i < MaxClients; i++) {
@@ -365,6 +366,9 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
      RemovePlayerFreeday(victim);
 }
 
+public Action Event_ChangeCvar(Event event, const char[] name, bool dontBroadcast) {
+     SetEventBroadcast(event, true);
+}
 
 /** ===========[ HOOKS ]========== **/
 
