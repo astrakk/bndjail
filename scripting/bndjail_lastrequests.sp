@@ -2,9 +2,13 @@
 #include <bndjail>
 
 // Global variables and arrays
+ArrayList g_cLastRequestHandlers;
+ArrayList g_cLastRequestDescriptions;
 ArrayList g_cLastRequestQueue;
+
 bool g_bIsLastRequestLocked = false;
 bool g_bIsLastRequestGiven = false;
+
 Menu g_hGiveLastRequest;
 Menu g_hSelectLastRequest;
 
@@ -37,6 +41,9 @@ public void OnPluginStart() {
 
      // Public commands
      RegConsoleCmd("sm_givelr", Command_GiveLastRequest, "As warden, select a living red player to give a last request");
+
+     // Load config
+     LoadConfig("addons/sourcemod/configs/bndjail/bndjail_lastrequests.cfg");
 }
 
 
@@ -152,8 +159,18 @@ public Action Menu_SelectLastRequest(int client) {
      // Remove all items from menu
      RemoveAllMenuItems(g_hSelectLastRequest);
 
-     AddMenuItem(g_hSelectLastRequest, "LR_DrugDayAll", "Drug day (all)");
-     AddMenuItem(g_hSelectLastRequest, "LR_DrugDayGuards", "Drug day (guards)");
+     //AddMenuItem(g_hSelectLastRequest, "LR_DrugDayAll", "Drug day (all)");
+     //AddMenuItem(g_hSelectLastRequest, "LR_DrugDayGuards", "Drug day (guards)");
+
+     char handler[32];
+     char description[255];
+
+     for (int i = 0; i < GetLastRequestCount(); i++) {
+          GetArrayString(g_cLastRequestHandlers, i, handler, sizeof(handler));
+          GetArrayString(g_cLastRequestDescriptions, i, description, sizeof(description));
+          
+          AddMenuItem(g_hSelectLastRequest, handler, description);
+     }
 
      DisplayMenu(g_hSelectLastRequest, client, MENU_TIME_FOREVER);
 
@@ -283,6 +300,58 @@ public bool IsTomorrowLastRequest() {
      }
 
      return false;
+}
+
+
+public bool LoadConfig(const char[] config) {
+     // Create the arrays
+     g_cLastRequestHandlers = CreateArray(32);
+     g_cLastRequestDescriptions = CreateArray(255);
+
+     KeyValues kv = new KeyValues("Last Requests");
+
+     // Could not read config file
+     if (!FileToKeyValues(kv, config)) {
+          PrintToServer("[JAIL] Error: failed to open lastrequests config file");
+          CloseHandle(kv);
+          return false;
+     }
+
+     // Could not find subkeys in config file
+     if (!KvGotoFirstSubKey(kv)) {
+          PrintToServer("[JAIL] Error: failed to find subkey in lastrequests config file. Is it empty?");
+          CloseHandle(kv);
+          return false;
+     }
+
+     // Iterate over all subkeys and store their contents in appropriate arrays
+     char handler[32];
+     char description[255];
+
+     do {
+          KvGetSectionName(kv, handler, sizeof(handler));
+          KvGetString(kv, "desc", description, sizeof(description));
+
+          // Store the retrieved values
+          PushArrayString(g_cLastRequestHandlers, handler);
+          PushArrayString(g_cLastRequestDescriptions, description);
+     } while (KvGotoNextKey(kv));
+
+     // Array sizes don't match (missing description or handler value)
+     if (GetArraySize(g_cLastRequestHandlers) != GetArraySize(g_cLastRequestDescriptions)) {
+          PrintToServer("[JAIL] Error: invalid data in config file. Please check all handlers and descriptions");
+          CloseHandle(kv);
+          return false;
+     }
+
+     // Close the KeyValues handle and return true
+     CloseHandle(kv);
+     return true;
+}
+
+
+public int GetLastRequestCount() {
+     return GetArraySize(g_cLastRequestHandlers);
 }
 
 
