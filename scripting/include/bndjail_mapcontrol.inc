@@ -40,7 +40,7 @@ forward void BNDJail_OnCloseCells(int client);
 /** ==========[ DEPENDENCY ]========== **/
 
 #if !defined REQUIRE_PLUGIN
-public void __pl_bndjail_SetNTVOptional() {
+public void __pl_bndjail_mapcontrol_SetNTVOptional() {
      MarkNativeAsOptional("BNDJail_OpenCells");
      MarkNativeAsOptional("BNDJail_CloseCells");
 

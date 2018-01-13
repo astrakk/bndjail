@@ -2,6 +2,9 @@
 #include <bndjail>
 
 // Global variables and arrays
+const int MAX_HANDLER_LENGTH = 32;
+const int MAX_DESCRIPTION_LENGTH= 255;
+
 ArrayList g_cLastRequestHandlers;
 ArrayList g_cLastRequestDescriptions;
 ArrayList g_cLastRequestQueue;
@@ -46,6 +49,15 @@ public void OnPluginStart() {
      LoadConfig("addons/sourcemod/configs/bndjail/bndjail_lastrequests.cfg");
 }
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max) {
+     // Dependency
+     RegPluginLibrary("bndjail_lastrequests");
+
+     // Natives
+     CreateNative("BNDJail_GetLastRequestDescription", Native_GetLastRequestDescription);
+
+     return APLRes_Success;
+}
 
 /** ==========[ COMMANDS ]========== **/
 
@@ -75,7 +87,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
      RemoveLastRequestGiven();
 
      if (IsTodayLastRequest()) {
-          char handler[32];
+          char handler[MAX_HANDLER_LENGTH];
           GetArrayString(g_cLastRequestQueue, 0, handler, sizeof(handler));
           ExecuteLastRequest(handler);
      }
@@ -90,7 +102,7 @@ public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
      }
 
      if (IsTodayLastRequest()) {
-          char handler[32];
+          char handler[MAX_HANDLER_LENGTH];
           GetArrayString(g_cLastRequestQueue, 0, handler, sizeof(handler));
           CleanLastRequest(handler);
      }
@@ -162,8 +174,8 @@ public Action Menu_SelectLastRequest(int client) {
      //AddMenuItem(g_hSelectLastRequest, "LR_DrugDayAll", "Drug day (all)");
      //AddMenuItem(g_hSelectLastRequest, "LR_DrugDayGuards", "Drug day (guards)");
 
-     char handler[32];
-     char description[255];
+     char handler[MAX_HANDLER_LENGTH];
+     char description[MAX_DESCRIPTION_LENGTH];
 
      for (int i = 0; i < GetLastRequestCount(); i++) {
           GetArrayString(g_cLastRequestHandlers, i, handler, sizeof(handler));
@@ -186,7 +198,7 @@ public int Handler_SelectLastRequest(Menu menu, MenuAction action, int param1, i
                }
 
                // Get the LR handler from the selected menu item
-               char handler[32];
+               char handler[MAX_HANDLER_LENGTH];
                GetMenuItem(menu, param2, handler, sizeof(handler));
 
                // Add the selected LR to the queue
@@ -245,7 +257,7 @@ public bool IsLastRequestGiven() {
 }
 
 
-public void ExecuteLastRequest(const char handler[32]) {
+public void ExecuteLastRequest(const char handler[MAX_HANDLER_LENGTH]) {
      if (StrEqual(handler, "LR_DrugDayAll")) {
           Execute_LR_DrugDayAll();
      }
@@ -255,7 +267,7 @@ public void ExecuteLastRequest(const char handler[32]) {
      }
 }
 
-public void CleanLastRequest(const char handler[32]) {
+public void CleanLastRequest(const char handler[MAX_HANDLER_LENGTH]) {
      if (StrEqual(handler, "LR_DrugDayAll")) {
           Clean_LR_DrugDayAll();
      }
@@ -266,7 +278,7 @@ public void CleanLastRequest(const char handler[32]) {
 }
 
 
-public void AddLastRequest(const char handler[32]) {
+public void AddLastRequest(const char handler[MAX_HANDLER_LENGTH]) {
      PushArrayString(g_cLastRequestQueue, handler);
 }
 
@@ -276,7 +288,7 @@ public void RemoveLastRequest() {
 
 
 public bool IsTodayLastRequest() {
-     char handler[32];
+     char handler[MAX_HANDLER_LENGTH];
      if (GetArrayString(g_cLastRequestQueue, 0, handler, sizeof(handler)))
      {
           if (!StrEqual(handler, "LR_None")) {
@@ -288,7 +300,7 @@ public bool IsTodayLastRequest() {
 }
 
 public bool IsTomorrowLastRequest() {
-     char handler[32];
+     char handler[MAX_HANDLER_LENGTH];
      if (GetArraySize(g_cLastRequestQueue) < 2) {
           return false;
      }
@@ -305,8 +317,8 @@ public bool IsTomorrowLastRequest() {
 
 public bool LoadConfig(const char[] config) {
      // Create the arrays
-     g_cLastRequestHandlers = CreateArray(32);
-     g_cLastRequestDescriptions = CreateArray(255);
+     g_cLastRequestHandlers = CreateArray(MAX_HANDLER_LENGTH);
+     g_cLastRequestDescriptions = CreateArray(MAX_DESCRIPTION_LENGTH);
 
      KeyValues kv = new KeyValues("Last Requests");
 
@@ -325,8 +337,8 @@ public bool LoadConfig(const char[] config) {
      }
 
      // Iterate over all subkeys and store their contents in appropriate arrays
-     char handler[32];
-     char description[255];
+     char handler[MAX_HANDLER_LENGTH];
+     char description[MAX_DESCRIPTION_LENGTH];
 
      do {
           KvGetSectionName(kv, handler, sizeof(handler));
@@ -352,6 +364,32 @@ public bool LoadConfig(const char[] config) {
 
 public int GetLastRequestCount() {
      return GetArraySize(g_cLastRequestHandlers);
+}
+
+public bool GetLastRequestDescription(char[] name, int size) {
+     // Variables to store the handler and description
+     char cCurrentHandler[MAX_HANDLER_LENGTH];
+     char handler[MAX_HANDLER_LENGTH];
+     char description[MAX_DESCRIPTION_LENGTH];
+     bool found = false;
+
+     if (IsTodayLastRequest()) {
+          GetArrayString(g_cLastRequestQueue, 0, cCurrentHandler, sizeof(cCurrentHandler));
+          for (int i = 0; i < GetLastRequestCount(); i++) {
+               GetArrayString(g_cLastRequestHandlers, i, handler, sizeof(handler));
+               if (StrEqual(cCurrentHandler, handler)) {
+                    GetArrayString(g_cLastRequestDescriptions, i, description, sizeof(description));
+                    found = true;
+                    break;
+               }
+          }
+     }
+
+     if (found) {
+          strcopy(name, size, description);
+     }
+
+     return found;
 }
 
 
@@ -386,4 +424,14 @@ Clean_LR_DrugDayAll() {
 
 Clean_LR_DrugDayGuards() {
      ServerCommand("sm_drug @all 0");
+}
+
+
+/** ==========[ NATIVES ]========== **/
+
+public int Native_GetLastRequestDescription(Handle plugin, int numParams) {
+     int size = GetNativeCell(2);
+     char description[size] = GetNativeCell(1);
+
+     return GetLastRequestDescription(description, size);
 }

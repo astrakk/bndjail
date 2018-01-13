@@ -58,8 +58,7 @@ public void OnPluginStart() {
      }
 }
 
-public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
-{
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max) {
      // Dependency
      RegPluginLibrary("bndjail_mapcontrol");
 

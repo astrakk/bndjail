@@ -74,8 +74,7 @@ public void OnPluginStart() {
      SetConVarInt(FindConVar("phys_pushscale"), 1000);
 }
 
-public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
-{
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max) {
      // Dependency
      RegPluginLibrary("bndjail");
 
