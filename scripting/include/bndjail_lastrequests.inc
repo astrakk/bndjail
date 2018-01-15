@@ -7,11 +7,18 @@
 /** ==========[ NATIVES ]========== **/
 
 /**
- * Retrieve the description of the current day's LR
+ * Retrieve the handler of the current day's LR
  *
  * @return          true if success, false otherwise
  */
-native bool BNDJail_GetLastRequestDescription(char[] description, int maxlen);
+native bool BNDJail_GetCurrentLastRequestHandler(char[] handler, int maxlen);
+
+/**
+ * Retrieve the description of the provided LR handler
+ *
+ * @return          true if success, false otherwise
+ */
+native bool BNDJail_GetLastRequestDescription(const char[] handler, char[] description, int maxlen);
 
 
 /** ==========[ DEPENDENCY ]========== **/

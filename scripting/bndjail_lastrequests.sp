@@ -15,6 +15,12 @@ bool g_bIsLastRequestGiven = false;
 Menu g_hGiveLastRequest;
 Menu g_hSelectLastRequest;
 
+// Forward handles
+//Handle g_hOnExecuteLastRequest
+//Handle g_hOnCleanLastRequest
+//Handle g_hOnGiveLastRequest
+//Handle g_hOnSelectLastRequest
+
 public Plugin myinfo = {
      name = "[TF2] BNDJail Last Requests",
      author = "Astrak",
@@ -32,8 +38,7 @@ public void OnPluginStart() {
      HookEvent("teamplay_round_win", Event_RoundEnd, EventHookMode_Pre);
 
      // Create last request queue
-     g_cLastRequestQueue = CreateArray(64);
-     AddLastRequest("LR_None");
+     ClearLastRequests();
 
      // Create the last request menus
      g_hGiveLastRequest = CreateMenu(Handler_GiveLastRequest);
@@ -44,6 +49,9 @@ public void OnPluginStart() {
 
      // Public commands
      RegConsoleCmd("sm_givelr", Command_GiveLastRequest, "As warden, select a living red player to give a last request");
+     RegConsoleCmd("sm_listlr", Command_ListLastRequest, "As warden, select a living red player to give a last request");
+     RegConsoleCmd("sm_currlr", Command_CurrLastRequest, "As warden, select a living red player to give a last request");
+     RegConsoleCmd("sm_forcelr", Command_ForceLastRequest, "As warden, select a living red player to give a last request");
 
      // Load config
      LoadConfig("addons/sourcemod/configs/bndjail/bndjail_lastrequests.cfg");
@@ -54,9 +62,21 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
      RegPluginLibrary("bndjail_lastrequests");
 
      // Natives
+     CreateNative("BNDJail_GetCurrentLastRequestHandler", Native_GetCurrentLastRequestHandler);
      CreateNative("BNDJail_GetLastRequestDescription", Native_GetLastRequestDescription);
 
+     // Forwards
+     //g_hOnExecuteLastRequest = CreateGlobalForward("BNDJail_OnExecuteLastRequest", ET_Event, Param_Cell);
+     //g_hOnCleanLastRequest = CreateGlobalForward("BNDJail_OnCleanLastRequest", ET_Event, Param_Cell);
+     //g_hOnGiveLastRequest = CreateGlobalForward("BNDJail_OnGiveLastRequest", ET_Event, Param_Cell);
+     //g_hOnSelectLastRequest = CreateGlobalForward("BNDJail_OnSelectLastRequest", ET_Event, Param_Cell);
+
      return APLRes_Success;
+}
+
+public void OnMapStart() {
+     // Clear the last request queue
+     ClearLastRequests();
 }
 
 /** ==========[ COMMANDS ]========== **/
@@ -106,7 +126,6 @@ public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
           GetArrayString(g_cLastRequestQueue, 0, handler, sizeof(handler));
           CleanLastRequest(handler);
      }
-
      RemoveLastRequest();
 }
 
@@ -171,12 +190,10 @@ public Action Menu_SelectLastRequest(int client) {
      // Remove all items from menu
      RemoveAllMenuItems(g_hSelectLastRequest);
 
-     //AddMenuItem(g_hSelectLastRequest, "LR_DrugDayAll", "Drug day (all)");
-     //AddMenuItem(g_hSelectLastRequest, "LR_DrugDayGuards", "Drug day (guards)");
-
      char handler[MAX_HANDLER_LENGTH];
      char description[MAX_DESCRIPTION_LENGTH];
 
+     // Iterate over all loaded last requests and display them in the menu
      for (int i = 0; i < GetLastRequestCount(); i++) {
           GetArrayString(g_cLastRequestHandlers, i, handler, sizeof(handler));
           GetArrayString(g_cLastRequestDescriptions, i, description, sizeof(description));
@@ -286,6 +303,11 @@ public void RemoveLastRequest() {
      RemoveFromArray(g_cLastRequestQueue, 0);
 }
 
+public void ClearLastRequests() {
+     g_cLastRequestQueue = CreateArray(MAX_HANDLER_LENGTH);
+     AddLastRequest("LR_None");
+}
+
 
 public bool IsTodayLastRequest() {
      char handler[MAX_HANDLER_LENGTH];
@@ -366,27 +388,29 @@ public int GetLastRequestCount() {
      return GetArraySize(g_cLastRequestHandlers);
 }
 
-public bool GetLastRequestDescription(char[] name, int size) {
-     // Variables to store the handler and description
-     char cCurrentHandler[MAX_HANDLER_LENGTH];
-     char handler[MAX_HANDLER_LENGTH];
-     char description[MAX_DESCRIPTION_LENGTH];
-     bool found = false;
-
-     if (IsTodayLastRequest()) {
-          GetArrayString(g_cLastRequestQueue, 0, cCurrentHandler, sizeof(cCurrentHandler));
-          for (int i = 0; i < GetLastRequestCount(); i++) {
-               GetArrayString(g_cLastRequestHandlers, i, handler, sizeof(handler));
-               if (StrEqual(cCurrentHandler, handler)) {
-                    GetArrayString(g_cLastRequestDescriptions, i, description, sizeof(description));
-                    found = true;
-                    break;
-               }
-          }
+public bool GetCurrentLastRequestHandler(char[] handler, int size) {
+     // There is no current LR
+     if (!IsTodayLastRequest()) {
+          return false;
      }
 
-     if (found) {
-          strcopy(name, size, description);
+     // Retrieve the handler from the queue and return true
+     GetArrayString(g_cLastRequestQueue, 0, handler, size);
+     return true;
+}
+
+public bool GetLastRequestDescription(const char[] handler, char[] description, int size) {
+     // Variables to store the handler and description
+     char cArrayHandler[MAX_HANDLER_LENGTH];
+     bool found = false;
+
+     for (int i = 0; i < GetLastRequestCount(); i++) {
+          GetArrayString(g_cLastRequestHandlers, i, cArrayHandler, sizeof(cArrayHandler));
+          if (StrEqual(cArrayHandler, handler)) {
+               GetArrayString(g_cLastRequestDescriptions, i, description, size);
+               found = true;
+               break;
+          }
      }
 
      return found;
@@ -429,9 +453,36 @@ Clean_LR_DrugDayGuards() {
 
 /** ==========[ NATIVES ]========== **/
 
-public int Native_GetLastRequestDescription(Handle plugin, int numParams) {
+public int Native_GetCurrentLastRequestHandler(Handle plugin, int numParams) {
+     // Retrieve the size and set up the handler string
      int size = GetNativeCell(2);
-     char description[size] = GetNativeCell(1);
+     char[] handler = new char[size];
 
-     return GetLastRequestDescription(description, size);
+     // Attempt to retrieve the current last request handler
+     bool result = GetCurrentLastRequestHandler(handler, size);
+     if (result) {
+          SetNativeString(1, handler, size, false);
+     }
+
+     return result;
+}
+
+public int Native_GetLastRequestDescription(Handle plugin, int numParams) {
+
+     // Retrieve the size, handler string, and set up the description string
+     int size = GetNativeCell(3);
+     char[] description = new char[size];
+
+     int len;
+     GetNativeStringLength(1, len);
+     char[] handler = new char[len + 1];
+     GetNativeString(1, handler, len + 1);
+
+     // Attempt to retrieve the description of the provided LR
+     bool result = GetLastRequestDescription(handler, description, size);
+     if (result) {
+          SetNativeString(2, description, size, false);
+     }
+
+     return result;
 }
