@@ -11,7 +11,7 @@ public Plugin myinfo = {
 	author = "Astrak",
 	description = "Heads Up Display module for BNDJail ",
 	version = "1.0",
-	url = "https://github.com/astrakk/"
+	url = "https://github.com/astrakk/bndjail"
 };
 
 
