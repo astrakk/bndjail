@@ -11,6 +11,8 @@ ArrayList g_cLastRequestDescriptions;
 ArrayList g_cLastRequestQueue;
 ArrayList g_iClientQueue;
 
+int g_iLastRequestGivenClient = -1;
+
 bool g_bIsLastRequestLocked = false;
 bool g_bIsLastRequestGiven = false;
 bool g_bIsLastRequestSelected = false;
@@ -40,6 +42,7 @@ public void OnPluginStart() {
      // Events
      HookEvent("arena_round_start", Event_RoundStart, EventHookMode_Post);
      HookEvent("teamplay_round_win", Event_RoundEnd, EventHookMode_Pre);
+     HookEvent("player_death", Event_PlayerDeath, EventHookMode_Pre);
 
      // Create last request queue
      ClearLastRequests();
@@ -87,6 +90,10 @@ public void OnMapStart() {
      ClearLastRequests();
 }
 
+public void BNDJail_OnRemovePlayerWarden(int client) {
+     RemoveGiveLastRequestMenu();
+}
+
 /** ==========[ COMMANDS ]========== **/
 
 public Action Command_GiveLastRequest(int client, int args) {
@@ -123,7 +130,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 }
 
 public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast) {
-     CancelLastRequestMenus();
+     ClearLastRequestMenus();
      LockLastRequest();
 
      if (!IsTomorrowLastRequest()) {
@@ -135,7 +142,19 @@ public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
           GetCurrentLastRequestHandler(handler, sizeof(handler));
           CleanLastRequest(GetCurrentLastRequestClient(), handler);
      }
+
      RemoveLastRequest();
+}
+
+public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast) {
+     int client = GetClientOfUserId(event.GetInt("userid"));
+
+     // If the player who died was in the process of selecting their last request, remove their menu to prevent posthumous selection
+     if (IsLastRequestGiven() && !IsLastRequestSelected()) {
+          if (GetLastRequestGivenClient() == client) {
+               RemoveSelectLastRequestMenu();
+          }
+     }
 }
 
 
@@ -179,7 +198,7 @@ public int Handler_GiveLastRequest(Menu menu, MenuAction action, int param1, int
                int client = StringToInt(id);
 
                // Set the last request as given
-               SetLastRequestGiven();
+               SetLastRequestGiven(client);
 
                // Call the last request menu on the target client
                Menu_SelectLastRequest(client);
@@ -270,10 +289,20 @@ public int Handler_SelectLastRequest(Menu menu, MenuAction action, int param1, i
 
 /** ==========[ FUNCTIONS ]========== **/
 
-public void CancelLastRequestMenus() {
+public void ClearLastRequestMenus() {
+     RemoveGiveLastRequestMenu();
+     RemoveSelectLastRequestMenu();
+}
+
+public void RemoveGiveLastRequestMenu() {
      CancelMenu(g_hGiveLastRequest);
+
+}
+
+public void RemoveSelectLastRequestMenu() {
      CancelMenu(g_hSelectLastRequest);
 }
+
 
 public void LockLastRequest() {
      g_bIsLastRequestLocked = true;
@@ -285,12 +314,19 @@ public void UnlockLastRequest() {
      PrintToChatAll("[JAIL] Last request is now unlocked");
 }
 
-public void SetLastRequestGiven() {
+public void SetLastRequestGiven(int client) {
+     g_iLastRequestGivenClient = client;
      g_bIsLastRequestGiven = true;
 }
 
 public void RemoveLastRequestGiven() {
+     g_iLastRequestGivenClient = -1;
      g_bIsLastRequestGiven = false;
+}
+
+public int GetLastRequestGivenClient() {
+     // Used to track who was given lr to check on player_death. DO NOT EXPOSE AS NATIVE.
+     return g_iLastRequestGivenClient;
 }
 
 public void SetLastRequestSelected() {
