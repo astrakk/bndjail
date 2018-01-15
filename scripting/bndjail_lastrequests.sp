@@ -1,25 +1,29 @@
 #include <sourcemod>
 #include <bndjail>
+#include <bndjail_lastrequests>
 
 // Global variables and arrays
 const int MAX_HANDLER_LENGTH = 32;
-const int MAX_DESCRIPTION_LENGTH= 255;
+const int MAX_DESCRIPTION_LENGTH = 255;
 
 ArrayList g_cLastRequestHandlers;
 ArrayList g_cLastRequestDescriptions;
 ArrayList g_cLastRequestQueue;
+ArrayList g_iClientQueue;
 
 bool g_bIsLastRequestLocked = false;
 bool g_bIsLastRequestGiven = false;
+bool g_bIsLastRequestSelected = false;
 
 Menu g_hGiveLastRequest;
 Menu g_hSelectLastRequest;
 
 // Forward handles
-//Handle g_hOnExecuteLastRequest
-//Handle g_hOnCleanLastRequest
-//Handle g_hOnGiveLastRequest
-//Handle g_hOnSelectLastRequest
+Handle g_hOnExecuteLastRequest
+Handle g_hOnCleanLastRequest
+Handle g_hOnGiveLastRequest
+Handle g_hOnSelectLastRequest
+Handle g_hOnCancelLastRequest
 
 public Plugin myinfo = {
      name = "[TF2] BNDJail Last Requests",
@@ -49,9 +53,6 @@ public void OnPluginStart() {
 
      // Public commands
      RegConsoleCmd("sm_givelr", Command_GiveLastRequest, "As warden, select a living red player to give a last request");
-     RegConsoleCmd("sm_listlr", Command_ListLastRequest, "As warden, select a living red player to give a last request");
-     RegConsoleCmd("sm_currlr", Command_CurrLastRequest, "As warden, select a living red player to give a last request");
-     RegConsoleCmd("sm_forcelr", Command_ForceLastRequest, "As warden, select a living red player to give a last request");
 
      // Load config
      LoadConfig("addons/sourcemod/configs/bndjail/bndjail_lastrequests.cfg");
@@ -62,14 +63,21 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
      RegPluginLibrary("bndjail_lastrequests");
 
      // Natives
+     CreateNative("BNDJail_IsLastRequestLocked", Native_IsLastRequestLocked);
+     CreateNative("BNDJail_IsLastRequestGiven", Native_IsLastRequestGiven);
+     CreateNative("BNDJail_IsLastRequestSelected", Native_IsLastRequestSelected);
+     CreateNative("BNDJail_IsTodayLastRequest", Native_IsTodayLastRequest);
+     CreateNative("BNDJail_IsTomorrowLastRequest", Native_IsTomorrowLastRequest);
+     CreateNative("BNDJail_GetCurrentLastRequestClient", Native_GetCurrentLastRequestClient);
      CreateNative("BNDJail_GetCurrentLastRequestHandler", Native_GetCurrentLastRequestHandler);
      CreateNative("BNDJail_GetLastRequestDescription", Native_GetLastRequestDescription);
 
      // Forwards
-     //g_hOnExecuteLastRequest = CreateGlobalForward("BNDJail_OnExecuteLastRequest", ET_Event, Param_Cell);
-     //g_hOnCleanLastRequest = CreateGlobalForward("BNDJail_OnCleanLastRequest", ET_Event, Param_Cell);
-     //g_hOnGiveLastRequest = CreateGlobalForward("BNDJail_OnGiveLastRequest", ET_Event, Param_Cell);
-     //g_hOnSelectLastRequest = CreateGlobalForward("BNDJail_OnSelectLastRequest", ET_Event, Param_Cell);
+     g_hOnExecuteLastRequest = CreateGlobalForward("BNDJail_OnExecuteLastRequest", ET_Event, Param_Cell);
+     g_hOnCleanLastRequest = CreateGlobalForward("BNDJail_OnCleanLastRequest", ET_Event, Param_Cell);
+     g_hOnGiveLastRequest = CreateGlobalForward("BNDJail_OnGiveLastRequest", ET_Event, Param_Cell);
+     g_hOnSelectLastRequest = CreateGlobalForward("BNDJail_OnSelectLastRequest", ET_Event, Param_Cell);
+     g_hOnCancelLastRequest = CreateGlobalForward("BNDJail_OnCancelLastRequest", ET_Event, Param_Cell);
 
      return APLRes_Success;
 }
@@ -105,11 +113,12 @@ public Action Command_GiveLastRequest(int client, int args) {
 public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast) {
      UnlockLastRequest();
      RemoveLastRequestGiven();
+     RemoveLastRequestSelected();
 
      if (IsTodayLastRequest()) {
           char handler[MAX_HANDLER_LENGTH];
-          GetArrayString(g_cLastRequestQueue, 0, handler, sizeof(handler));
-          ExecuteLastRequest(handler);
+          GetCurrentLastRequestHandler(handler, sizeof(handler));
+          ExecuteLastRequest(GetCurrentLastRequestClient(), handler);
      }
 }
 
@@ -118,13 +127,13 @@ public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
      LockLastRequest();
 
      if (!IsTomorrowLastRequest()) {
-          AddLastRequest("LR_None");
+          AddLastRequest(-1, "LR_None");
      }
 
      if (IsTodayLastRequest()) {
           char handler[MAX_HANDLER_LENGTH];
-          GetArrayString(g_cLastRequestQueue, 0, handler, sizeof(handler));
-          CleanLastRequest(handler);
+          GetCurrentLastRequestHandler(handler, sizeof(handler));
+          CleanLastRequest(GetCurrentLastRequestClient(), handler);
      }
      RemoveLastRequest();
 }
@@ -180,6 +189,11 @@ public int Handler_GiveLastRequest(Menu menu, MenuAction action, int param1, int
                GetClientName(client, cClientName, sizeof(cClientName));
 
                PrintToChatAll("[JAIL] Warden has given %s their last request", cClientName);
+
+               // Call the forward
+               Call_StartForward(g_hOnGiveLastRequest);
+               Call_PushCell(client);
+               Call_Finish();
           }
      }
 
@@ -219,13 +233,22 @@ public int Handler_SelectLastRequest(Menu menu, MenuAction action, int param1, i
                GetMenuItem(menu, param2, handler, sizeof(handler));
 
                // Add the selected LR to the queue
-               AddLastRequest(handler);
+               AddLastRequest(param1, handler);
+
+               // Set the status of LR selection to true
+               SetLastRequestSelected();
 
                // Notify the chat
                char cClientName[MAX_NAME_LENGTH];
                GetClientName(param1, cClientName, sizeof(cClientName));
 
                PrintToChatAll("[JAIL] %s has selected their last request", cClientName);
+
+               // Call the forward
+               Call_StartForward(g_hOnSelectLastRequest);
+               Call_PushCell(param1);
+               Call_PushString(handler);
+               Call_Finish();
           }
           case MenuAction_Cancel: {
                // Allow the warden to re-give LR if the menu is closed
@@ -233,6 +256,11 @@ public int Handler_SelectLastRequest(Menu menu, MenuAction action, int param1, i
 
                // Notify the chat
                PrintToChatAll("[JAIL] Last request menu was closed without selecting anything");
+
+               // Call the forward
+               Call_StartForward(g_hOnCancelLastRequest);
+               Call_PushCell(param1);
+               Call_Finish();
           }
      }
 
@@ -265,6 +293,14 @@ public void RemoveLastRequestGiven() {
      g_bIsLastRequestGiven = false;
 }
 
+public void SetLastRequestSelected() {
+     g_bIsLastRequestSelected = true;
+}
+
+public void RemoveLastRequestSelected() {
+     g_bIsLastRequestSelected = false;
+}
+
 public bool IsLastRequestLocked() {
      return g_bIsLastRequestLocked;
 }
@@ -273,8 +309,19 @@ public bool IsLastRequestGiven() {
      return g_bIsLastRequestGiven;
 }
 
+public bool IsLastRequestSelected() {
+     return g_bIsLastRequestSelected;
+}
 
-public void ExecuteLastRequest(const char handler[MAX_HANDLER_LENGTH]) {
+
+public void ExecuteLastRequest(int client, const char[] handler) {
+     // Call the forward
+     Call_StartForward(g_hOnExecuteLastRequest);
+     Call_PushCell(client);
+     Call_PushString(handler);
+     Call_Finish();
+
+     // Actions for different handlers
      if (StrEqual(handler, "LR_DrugDayAll")) {
           Execute_LR_DrugDayAll();
      }
@@ -284,7 +331,14 @@ public void ExecuteLastRequest(const char handler[MAX_HANDLER_LENGTH]) {
      }
 }
 
-public void CleanLastRequest(const char handler[MAX_HANDLER_LENGTH]) {
+public void CleanLastRequest(int client, const char[] handler) {
+     // Call the forward
+     Call_StartForward(g_hOnCleanLastRequest);
+     Call_PushCell(client);
+     Call_PushString(handler);
+     Call_Finish();
+
+     // Actions for different handlers
      if (StrEqual(handler, "LR_DrugDayAll")) {
           Clean_LR_DrugDayAll();
      }
@@ -295,17 +349,21 @@ public void CleanLastRequest(const char handler[MAX_HANDLER_LENGTH]) {
 }
 
 
-public void AddLastRequest(const char handler[MAX_HANDLER_LENGTH]) {
+public void AddLastRequest(int client, const char[] handler) {
+     PushArrayCell(g_iClientQueue, client);
      PushArrayString(g_cLastRequestQueue, handler);
 }
 
 public void RemoveLastRequest() {
+     RemoveFromArray(g_iClientQueue, 0);
      RemoveFromArray(g_cLastRequestQueue, 0);
 }
 
 public void ClearLastRequests() {
      g_cLastRequestQueue = CreateArray(MAX_HANDLER_LENGTH);
-     AddLastRequest("LR_None");
+     g_iClientQueue = CreateArray();
+
+     AddLastRequest(-1, "LR_None");
 }
 
 
@@ -388,6 +446,10 @@ public int GetLastRequestCount() {
      return GetArraySize(g_cLastRequestHandlers);
 }
 
+public int GetCurrentLastRequestClient() {
+     return GetArrayCell(g_iClientQueue, 0);
+}
+
 public bool GetCurrentLastRequestHandler(char[] handler, int size) {
      // There is no current LR
      if (!IsTodayLastRequest()) {
@@ -452,6 +514,30 @@ Clean_LR_DrugDayGuards() {
 
 
 /** ==========[ NATIVES ]========== **/
+
+public int Native_IsLastRequestLocked(Handle plugin, int numParams) {
+     return IsLastRequestLocked();
+}
+
+public int Native_IsLastRequestGiven(Handle plugin, int numParams) {
+     return IsLastRequestGiven();
+}
+
+public int Native_IsLastRequestSelected(Handle plugin, int numParams) {
+     return IsLastRequestSelected();
+}
+
+public int Native_IsTodayLastRequest(Handle plugin, int numParams) {
+     return IsTodayLastRequest();
+}
+
+public int Native_IsTomorrowLastRequest(Handle plugin, int numParams) {
+     return IsTomorrowLastRequest();
+}
+
+public int Native_GetCurrentLastRequestClient(Handle plugin, int numParams) {
+     return GetCurrentLastRequestClient();
+}
 
 public int Native_GetCurrentLastRequestHandler(Handle plugin, int numParams) {
      // Retrieve the size and set up the handler string
