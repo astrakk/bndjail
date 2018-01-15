@@ -365,6 +365,10 @@ public void ExecuteLastRequest(int client, const char[] handler) {
      else if (StrEqual(handler, "LR_DrugDayGuards")) {
           Execute_LR_DrugDayGuards();
      }
+
+     else if (StrEqual(handler, "LR_FreedayAll")) {
+          Execute_LR_FreedayAll();
+     }
 }
 
 public void CleanLastRequest(int client, const char[] handler) {
@@ -381,6 +385,10 @@ public void CleanLastRequest(int client, const char[] handler) {
 
      else if (StrEqual(handler, "LR_DrugDayGuards")) {
           Clean_LR_DrugDayGuards();
+     }
+
+     else if (StrEqual(handler, "LR_FreedayAll")) {
+          Clean_LR_FreedayAll();
      }
 }
 
@@ -537,6 +545,14 @@ Execute_LR_DrugDayGuards() {
      ServerCommand("sm_drug @blue 1");
 }
 
+Execute_LR_FreedayAll() {
+     for (int i = 0; i < MaxClients; i++) {
+          if (IsValidClient(i, false, true, true) && BNDJail_IsPlayerRed(i)) {
+               BNDJail_SetPlayerFreeday(i);
+          }
+     }
+}
+
 
 /** ==========[ LAST REQUESTS (CLEANING) ]========== **/
 
@@ -546,6 +562,10 @@ Clean_LR_DrugDayAll() {
 
 Clean_LR_DrugDayGuards() {
      ServerCommand("sm_drug @all 0");
+}
+
+Clean_LR_FreedayAll() {
+     BNDJail_ClearFreedays();
 }
 
 
