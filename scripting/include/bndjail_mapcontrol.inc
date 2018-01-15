@@ -34,7 +34,7 @@ forward void BNDJail_OnOpenCells();
 /**
  * Called when the cell doors are closed
  */
-forward void BNDJail_OnCloseCells(int client);
+forward void BNDJail_OnCloseCells();
 
 
 /** ==========[ DEPENDENCY ]========== **/

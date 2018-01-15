@@ -76,10 +76,10 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
      CreateNative("BNDJail_GetLastRequestDescription", Native_GetLastRequestDescription);
 
      // Forwards
-     g_hOnExecuteLastRequest = CreateGlobalForward("BNDJail_OnExecuteLastRequest", ET_Event, Param_Cell);
-     g_hOnCleanLastRequest = CreateGlobalForward("BNDJail_OnCleanLastRequest", ET_Event, Param_Cell);
-     g_hOnGiveLastRequest = CreateGlobalForward("BNDJail_OnGiveLastRequest", ET_Event, Param_Any);
-     g_hOnSelectLastRequest = CreateGlobalForward("BNDJail_OnSelectLastRequest", ET_Event, Param_Any);
+     g_hOnExecuteLastRequest = CreateGlobalForward("BNDJail_OnExecuteLastRequest", ET_Event, Param_Cell, Param_String);
+     g_hOnCleanLastRequest = CreateGlobalForward("BNDJail_OnCleanLastRequest", ET_Event, Param_Cell, Param_String);
+     g_hOnGiveLastRequest = CreateGlobalForward("BNDJail_OnGiveLastRequest", ET_Event, Param_Cell);
+     g_hOnSelectLastRequest = CreateGlobalForward("BNDJail_OnSelectLastRequest", ET_Event, Param_Cell, Param_String);
      g_hOnCancelLastRequest = CreateGlobalForward("BNDJail_OnCancelLastRequest", ET_Event, Param_Cell);
 
      return APLRes_Success;

@@ -69,8 +69,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
      CreateNative("BNDJail_GetDoorCount", Native_GetDoorCount);
 
      // Forwards
-     g_hOnOpenCells = CreateGlobalForward("BNDJail_OnOpenCells", ET_Event, Param_Cell);
-     g_hOnCloseCells = CreateGlobalForward("BNDJail_OnCloseCells", ET_Event, Param_Cell);
+     g_hOnOpenCells = CreateGlobalForward("BNDJail_OnOpenCells", ET_Event);
+     g_hOnCloseCells = CreateGlobalForward("BNDJail_OnCloseCells", ET_Event);
 
      return APLRes_Success;
 }

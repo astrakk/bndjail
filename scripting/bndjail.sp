@@ -113,8 +113,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
      g_hOnSetPlayerFreeday = CreateGlobalForward("BNDJail_OnSetPlayerFreeday", ET_Event, Param_Cell);
      g_hOnRemovePlayerFreeday = CreateGlobalForward("BNDJail_OnRemovePlayerFreeday", ET_Event, Param_Cell);
 
-     g_hOnWardenLocked = CreateGlobalForward("BNDJail_OnWardenLocked", ET_Event, Param_Cell);
-     g_hOnWardenUnlocked = CreateGlobalForward("BNDJail_OnWardenUnlocked", ET_Event, Param_Cell);
+     g_hOnWardenLocked = CreateGlobalForward("BNDJail_OnWardenLocked", ET_Event);
+     g_hOnWardenUnlocked = CreateGlobalForward("BNDJail_OnWardenUnlocked", ET_Event);
 
      return APLRes_Success;
 }
