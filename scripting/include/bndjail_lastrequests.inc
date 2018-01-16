@@ -68,12 +68,12 @@ native bool BNDJail_GetLastRequestDescription(const char[] handler, char[] descr
 /**
  * Called just before a last request is executed
  */
-forward void BNDJail_OnExecuteLastRequest(int client, char[] handler);
+forward void BNDJail_OnExecuteLastRequest(int client, const char[] handler);
 
 /**
  * Called just before a last request is cleaned
  */
-forward void BNDJail_OnCleanLastRequest(int client, char[] handler);
+forward void BNDJail_OnCleanLastRequest(int client, const char[] handler);
 
 /**
  * Called after last request has been given to a player
@@ -83,7 +83,7 @@ forward void BNDJail_OnGiveLastRequest(int client);
 /**
  * Called after a last request is selected by a player
  */
-forward void BNDJail_OnSelectLastRequest(int client, char[] handler);
+forward void BNDJail_OnSelectLastRequest(int client, const char[] handler);
 
 /**
  * Called when the last request menu is closed before selecting the next rounds last request
