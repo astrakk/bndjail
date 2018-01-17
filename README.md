@@ -1,5 +1,4 @@
-# BNDJail
-A custom Jailbreak plugin for Boundary Servers
+![header](https://i.imgur.com/ojmLw3L.png)
 
 ## What is this?
 BNDJail is a custom made Jailbreak plugin for Boundary Servers. It features many of the features available in most Jail gamemodes with extra features trimmed out. It is also incredibly flexible with a key focus on modules rather than being one monolithic plugin.
