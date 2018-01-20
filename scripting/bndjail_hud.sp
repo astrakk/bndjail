@@ -66,7 +66,7 @@ public void ClearHuds() {
 
 public void SetWardenHud(int client) {
      // Set the warden text to appear in the top left and white
-     SetHudTextParams(0.05, 0.08, 1209600.0, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
+     SetHudTextParams(0.05, 0.13, 1209600.0, 255, 255, 255, 255, 0, 0.0, 0.0, 0.0);
      for (int i = 1; i < MaxClients; i++) {
           if (IsValidClient(i, true, true, false)) {
                ShowSyncHudText(i, g_hWardenText, "Warden: %N", client);
@@ -88,7 +88,7 @@ public void SetLastRequestHud(const char[] description) {
      strcopy(cShortenedText, sizeof(cShortenedText), description);
 
      // Set the LR description text to appear in the top left and red
-     SetHudTextParams(0.05, 0.13, 1209600.0, 255, 0, 0, 255, 0, 0.0, 0.0, 0.0);
+     SetHudTextParams(0.05, 0.18, 1209600.0, 255, 0, 0, 255, 0, 0.0, 0.0, 0.0);
      for (int i = 1; i < MaxClients; i++) {
           if (IsValidClient(i, true, true, false)) {
                ShowSyncHudText(i, g_hLastRequestText, "Last Request: %s", cShortenedText);
